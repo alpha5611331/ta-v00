@@ -681,7 +681,7 @@ class UploadController extends Controller
             $response = Http::timeout(90)
                 ->withToken(config('services.openai.api_key'))
                 ->post(config('services.openai.endpoint', 'https://api.openai.com/v1/chat/completions'), [
-                    'model'       => 'gpt-4o',
+                    'model'       => config('services.openai.model_remediation', 'gpt-4o'),
                     'temperature' => 0.2,
                     'max_tokens'  => 4096,
                     'messages'    => [
@@ -756,7 +756,7 @@ class UploadController extends Controller
                 $response = Http::timeout(60)
                     ->withToken(config('services.openai.api_key'))
                     ->post(config('services.openai.endpoint', 'https://api.openai.com/v1/chat/completions'), [
-                        'model'       => 'gpt-4o-mini',
+                        'model'       => config('services.openai.model_qa', 'gpt-4o-mini'),
                         'temperature' => 0.2,
                         'max_tokens'  => 4096,
                         'messages'    => [
