@@ -20,6 +20,29 @@ VOXORA adalah aplikasi Laravel untuk remediasi dokumen STEM agar lebih ramah scr
 - PHPUnit
 
 
+## Ghostscript (Wajib untuk Dokumen PDF)
+
+Ghostscript harus diinstal di sistem agar ekstraksi teks dari file PDF berfungsi. Tanpa Ghostscript, upload dokumen PDF akan gagal.
+
+**Windows:**
+1. Unduh installer dari [https://www.ghostscript.com/releases/](https://www.ghostscript.com/releases/) (pilih versi 64-bit).
+2. Jalankan installer dan ikuti langkah instalasinya.
+3. Pastikan direktori `bin` Ghostscript (misalnya `C:\Program Files\gs\gs10.xx.x\bin`) ditambahkan ke variabel lingkungan `PATH`.
+4. Verifikasi instalasi:
+
+```bash
+gswin64c --version
+```
+
+**Linux/macOS:**
+```bash
+# Ubuntu/Debian
+sudo apt-get install ghostscript
+
+# macOS (Homebrew)
+brew install ghostscript
+```
+
 ## PHP Extensions
 
 Ekstensi PHP berikut harus diaktifkan sebelum menjalankan aplikasi. Pada XAMPP, uncomment baris yang sesuai di `php.ini`:
