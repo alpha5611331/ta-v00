@@ -21,12 +21,6 @@ return [
         'token' => env('PYTHON_API_TOKEN', ''),
     ],
 
-    /* ── OpenAI (opsional, fallback jika Python tidak ada) ── */
-    'openai' => [
-        'api_key'  => env('OPENAI_API_KEY', ''),
-        'endpoint' => env('OPENAI_ENDPOINT', 'https://api.openai.com/v1/chat/completions'),
-    ],
-
     /*
     |--------------------------------------------------------------------------
     | Layanan bawaan Laravel (jangan dihapus)
@@ -45,9 +39,10 @@ return [
     'resend' => [
         'key' => env('RESEND_KEY'),
     ],
+
     'openai' => [
-        'api_key'          => env('OPENAI_API_KEY'),
-        'endpoint'         => env('OPENAI_API_URL', 'https://api.openai.com/v1/chat/completions'),
+        'api_key'           => env('OPENAI_API_KEY'),
+        'endpoint'          => env('OPENAI_API_URL', 'https://api.openai.com/v1/chat/completions'),
         'model_remediation' => env('OPENAI_MODEL_REMEDIATION', 'gpt-4o'),
         'model_qa'          => env('OPENAI_MODEL_QA', 'gpt-4o-mini'),
     ],
