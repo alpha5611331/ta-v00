@@ -89,9 +89,7 @@ class UploadController extends Controller
         $path = $file->store('uploads/' . Auth::id(), 'local');
 
         // ── C & D. Ekstrak + sanitasi ──────────────────────────────
-        // Saat ini simulasi — library smalot/pdfparser & phpoffice/phpword
-        // belum dipasang. Aktifkan extractText() setelah composer install.
-        $rawText   = '[Teks dari dokumen ' . $file->getClientOriginalName() . ']';
+        $rawText   = $this->extractText($file);
         $sanitized = $this->sanitize($rawText);
 
         // ── E. Remediasi (simulasi) ────────────────────────────────
@@ -256,27 +254,82 @@ class UploadController extends Controller
     private function extractDocxText(string $path): string
     {
         try {
-            $phpWord  = \PhpOffice\PhpWord\IOFactory::load($path);
-            $texts    = [];
+            $phpWord = \PhpOffice\PhpWord\IOFactory::load($path);
+            $lines   = [];
             foreach ($phpWord->getSections() as $section) {
                 foreach ($section->getElements() as $el) {
-                    if ($el instanceof \PhpOffice\PhpWord\Element\TextRun) {
-                        foreach ($el->getElements() as $textEl) {
-                            if (method_exists($textEl, 'getText')) {
-                                $texts[] = $textEl->getText();
-                            }
-                        }
-                        $texts[] = "\n";
-                    } elseif ($el instanceof \PhpOffice\PhpWord\Element\Text) {
-                        $texts[] = $el->getText() . "\n";
+                    $line = $this->extractElementText($el);
+                    if ($line !== '') {
+                        $lines[] = $line;
                     }
                 }
             }
-            return implode('', $texts);
+            return implode("\n", $lines);
         } catch (\Exception $e) {
             Log::error('DOCX parsing gagal: ' . $e->getMessage());
             return '[Gagal mengekstrak teks DOCX. Silakan coba file lain.]';
         }
+    }
+
+    private function extractElementText(object $el): string
+    {
+        // Title / heading — prefix with hashes so the AI can identify hierarchy
+        if ($el instanceof \PhpOffice\PhpWord\Element\Title) {
+            $depth = method_exists($el, 'getDepth') ? (int) $el->getDepth() : 1;
+            $inner = $el->getText();
+            $text  = is_string($inner) ? $inner : $this->extractElementText($inner);
+            return str_repeat('#', max(1, $depth)) . ' ' . trim($text);
+        }
+
+        // Paragraph and TextRun — recurse into children
+        if ($el instanceof \PhpOffice\PhpWord\Element\Paragraph ||
+            $el instanceof \PhpOffice\PhpWord\Element\TextRun) {
+            $parts = [];
+            foreach ($el->getElements() as $child) {
+                $t = $this->extractElementText($child);
+                if ($t !== '') $parts[] = $t;
+            }
+            return implode('', $parts);
+        }
+
+        // Plain text leaf
+        if ($el instanceof \PhpOffice\PhpWord\Element\Text) {
+            return $el->getText();
+        }
+
+        // Hyperlink — use visible text
+        if ($el instanceof \PhpOffice\PhpWord\Element\Link) {
+            return $el->getText();
+        }
+
+        // List item — indent marker for AI structure cues
+        if ($el instanceof \PhpOffice\PhpWord\Element\ListItem) {
+            $depth  = method_exists($el, 'getDepth') ? (int) $el->getDepth() : 0;
+            $prefix = str_repeat('  ', $depth) . '- ';
+            $obj    = $el->getTextObject();
+            $text   = method_exists($obj, 'getText') ? $obj->getText() : '';
+            return $prefix . trim($text);
+        }
+
+        // Table — serialize as pipe-delimited rows
+        if ($el instanceof \PhpOffice\PhpWord\Element\Table) {
+            $rows = [];
+            foreach ($el->getRows() as $row) {
+                $cells = [];
+                foreach ($row->getCells() as $cell) {
+                    $cellParts = [];
+                    foreach ($cell->getElements() as $cellEl) {
+                        $t = $this->extractElementText($cellEl);
+                        if ($t !== '') $cellParts[] = $t;
+                    }
+                    $cells[] = implode(' ', $cellParts);
+                }
+                $rows[] = implode(' | ', $cells);
+            }
+            return implode("\n", $rows);
+        }
+
+        return '';
     }
 
     /**
@@ -313,39 +366,158 @@ class UploadController extends Controller
      */
     private function remediateWithAI(string $sanitized): string
     {
-        $systemPrompt = <<<PROMPT
-Kamu adalah asisten remediasi aksesibilitas STEM untuk tunanetra.
-Tugasmu mengonversi teks dokumen—terutama matematika SMP-SMA—menjadi
-kalimat natural bahasa Indonesia yang dapat dibaca oleh screen reader (NVDA).
+        $systemPrompt = <<<'PROMPT'
+Kamu adalah penulis skrip narasi STEM profesional untuk tunanetra Indonesia.
 
-Aturan:
-1. Notasi matematika → kalimat natural.
-   Contoh: "x² + 3x = 0" → "x kuadrat ditambah tiga x sama dengan nol"
-2. Simbol → kata deskriptif (∑ → jumlah, √ → akar kuadrat dari, π → phi, ∞ → tak hingga).
-3. Pecahan → "pembilang dibagi penyebut" (¾ → tiga per empat).
-4. Pertahankan struktur paragraf, jangan ubah konten non-matematika.
-5. Gunakan tanda titik di akhir setiap kalimat.
-6. Hindari simbol atau karakter khusus dalam output.
-7. Jika ada soal/pertanyaan, awali dengan "Soal:" dan pertahankan nomornya.
+Tugas: ubah teks dokumen STEM menjadi SKRIP NARASI yang siap dibacakan oleh screen reader atau mesin Braille, tanpa kehilangan satu pun informasi dari dokumen asli.
+
+Output hanya berisi skrip narasi. Jangan tambahkan komentar, catatan, atau penjelasan meta di luar isi narasi.
+
+═══ KONVENSI MATEMATIKA ═══
+
+EKSPONEN:
+- x² → "x kuadrat"
+- x³ → "x kubik"
+- xⁿ → "x pangkat n"
+- 10⁻³ → "sepuluh pangkat negatif tiga"
+- eˣ → "e pangkat x"
+- x^{2} atau x^2 (LaTeX) → "x kuadrat"
+
+AKAR:
+- √x → "akar kuadrat dari x"
+- √(x+1) → "akar kuadrat dari, x ditambah satu"
+- ³√x → "akar pangkat tiga dari x"
+- \sqrt{x} (LaTeX) → "akar kuadrat dari x"
+- \sqrt[n]{x} (LaTeX) → "akar pangkat n dari x"
+
+PECAHAN:
+- a/b (sederhana) → "a per b"
+- (a+b)/(c-d) → "a tambah b, per, c kurang d"
+- \frac{a}{b} (LaTeX) → "a per b"
+- \frac{df}{dx} → "d f per d x"
+
+OPERASI DASAR:
+- + → "ditambah"
+- − → "dikurangi"
+- × atau · → "dikali"
+- ÷ → "dibagi"
+- ± → "plus atau minus"
+- = → "sama dengan"
+- ≠ → "tidak sama dengan"
+- < → "kurang dari"
+- > → "lebih dari"
+- ≤ → "kurang dari atau sama dengan"
+- ≥ → "lebih dari atau sama dengan"
+- ≈ → "kurang lebih sama dengan"
+- ∝ → "sebanding dengan"
+- % → "persen"
+
+KALKULUS:
+- ∑ atau \sum_{i=1}^{n} → "sigma, i dari satu sampai n, dari"
+- ∫ atau \int_{a}^{b} → "integral dari a sampai b, dari [fungsi] d[variabel]"
+- lim atau \lim_{x \to a} → "limit x mendekati a, dari"
+- d/dx atau \frac{d}{dx} → "turunan terhadap x dari"
+- ∂/∂x atau \frac{\partial}{\partial x} → "turunan parsial terhadap x dari"
+- f'(x) → "f aksen dari x"
+- f''(x) → "f aksen dua dari x"
+- \nabla → "nabla"
+
+HIMPUNAN DAN LOGIKA:
+- ∞ → "tak hingga"
+- ∈ → "anggota"
+- ∉ → "bukan anggota"
+- ⊂ → "himpunan bagian dari"
+- ∪ → "gabungan"
+- ∩ → "irisan"
+- ∀ → "untuk semua"
+- ∃ → "terdapat"
+- → (logika) → "maka"
+- ⇒ → "mengakibatkan"
+- ⟺ → "jika dan hanya jika"
+- ¬ → "bukan"
+
+HURUF YUNANI:
+- α→alfa, β→beta, γ→gamma, δ→delta, ε→epsilon, ζ→zeta, η→eta
+- θ→theta, λ→lambda, μ→mu, ν→nu, ξ→xi, π→pi, ρ→rho
+- σ→sigma, τ→tau, φ→phi, χ→chi, ψ→psi, ω→omega
+- Δ→Delta besar, Σ→Sigma besar, Π→Pi besar, Ω→Omega besar
+
+INDEKS DAN SUBSKRIP:
+- x_i atau xᵢ → "x sub i"
+- a_0 atau a₀ → "a sub nol"
+- v_{max} → "v sub maks"
+- T_{1/2} → "T sub setengah"
+
+VEKTOR DAN MATRIKS:
+- **v** atau v⃗ → "vektor v"
+- |v| → "besar vektor v"
+- v · w → "vektor v titik vektor w"
+- v × w → "vektor v silang vektor w"
+- Matriks A → "matriks A"
+- A_{m×n} → "matriks A berukuran m kali n"
+- det(A) → "determinan matriks A"
+- Aᵀ → "transpose matriks A"
+
+NILAI MUTLAK DAN NORMA:
+- |x| → "nilai mutlak dari x"
+- ||v|| → "norma dari vektor v"
+
+NOTASI LAINNYA:
+- n! → "n faktorial"
+- \binom{n}{k} → "n pilih k"
+- P(A) → "peluang kejadian A"
+- P(A|B) → "peluang A diketahui B"
+- \left( ... \right) → "kurung buka ... kurung tutup"
+- \left[ ... \right] → "kurung siku buka ... kurung siku tutup"
+- \left\{ ... \right\} → "kurung kurawal buka ... kurung kurawal tutup"
+
+═══ STRUKTUR DOKUMEN ═══
+
+- Heading "# Bab 1" atau "# BAB I" → "BAB SATU."  (tulis angka dengan kata)
+- Heading "## Sub-bagian" → "Sub-bagian: [judul]."
+- Heading "### ..." → "Bagian: [judul]."
+- Gambar → "Gambar [nomor]: [deskripsikan dari caption atau konteks sekitar]."
+- Tabel (baris dengan |) → "Tabel [nomor] memuat kolom [daftar nama kolom]. [Baca baris data satu per satu dengan format: baris satu, nilai kolom pertama adalah ..., nilai kolom kedua adalah ..., dan seterusnya.]"
+- Contoh soal → "Contoh Soal [nomor]:"
+- Penyelesaian/jawaban → "Penyelesaian:"
+- Definisi → "Definisi:"
+- Teorema → "Teorema [nomor atau nama]:"
+- Lemma/Korolari → baca sesuai labelnya
+- Bukti → "Bukti:"
+- Catatan kaki → "Catatan: [isi]."
+- Numbered list → "Pertama,", "Kedua,", "Ketiga,", dst.
+- Bullet list (prefix -) → "Pertama,", "Kedua,", "Ketiga,", dst.
+
+═══ ATURAN PENULISAN SKRIP ═══
+
+1. Pertahankan SEMUA informasi—jangan ringkas, jangan hilangkan konten apapun.
+2. Tambahkan koma (,) pada jeda alami saat membaca persamaan atau ekspresi panjang.
+3. Setiap persamaan yang berdiri sendiri diakhiri tanda titik (.).
+4. Gunakan kata transisi antar paragraf: "Selanjutnya,", "Perhatikan bahwa,", "Diketahui bahwa,", "Dengan demikian,", "Oleh karena itu,".
+5. Tidak ada simbol, karakter khusus, LaTeX, atau markup apapun dalam output—semua harus tertulis dalam huruf dan kata.
+6. Bahasa Indonesia yang mengalir natural—tidak kaku, tidak robotik.
+7. Angka di luar ekspresi matematika boleh ditulis sebagai digit (1, 2, 3).
+8. Singkatan umum dieja penuh: "yaitu" bukan "i.e.", "misalnya" bukan "e.g.", "dan lain-lain" bukan "dll." atau "etc.".
+9. Satuan fisika dibaca lengkap: "meter per detik kuadrat" bukan "m/s²".
 PROMPT;
 
-        // ── Simulasi / fallback jika tidak ada API key ─────────────
-        if (!config('services.openai.api_key') && !config('services.ai.api_key')) {
+        // ── Fallback ke simulasi jika tidak ada API key ────────────
+        if (!config('services.openai.api_key')) {
             return $this->simulateRemediation($sanitized);
         }
 
-        // ── Potong teks menjadi segmen 2000 karakter ───────────────
-        $segments  = $this->splitIntoSegments($sanitized, 2000);
-        $results   = [];
+        // ── Potong teks menjadi segmen 4000 karakter ───────────────
+        $segments = $this->splitIntoSegments($sanitized, 4000);
+        $results  = [];
 
         foreach ($segments as $segment) {
             try {
-                $response = Http::timeout(30)
+                $response = Http::timeout(60)
                     ->withToken(config('services.openai.api_key'))
                     ->post(config('services.openai.endpoint', 'https://api.openai.com/v1/chat/completions'), [
                         'model'       => 'gpt-4o-mini',
-                        'temperature' => 0.3,
-                        'max_tokens'  => 1500,
+                        'temperature' => 0.2,
+                        'max_tokens'  => 4096,
                         'messages'    => [
                             ['role' => 'system', 'content' => $systemPrompt],
                             ['role' => 'user',   'content' => $segment],
@@ -353,7 +525,7 @@ PROMPT;
                     ]);
 
                 if ($response->successful()) {
-                    $results[] = $response->json('choices.0.message.content', '');
+                    $results[] = trim($response->json('choices.0.message.content', ''));
                 } else {
                     Log::warning('AI API error: ' . $response->status() . ' – ' . $response->body());
                     $results[] = $this->simulateRemediation($segment);
