@@ -20,6 +20,23 @@ VOXORA adalah aplikasi Laravel untuk remediasi dokumen STEM agar lebih ramah scr
 - PHPUnit
 
 
+## PHP Extensions
+
+Ekstensi PHP berikut harus diaktifkan sebelum menjalankan aplikasi. Pada XAMPP, uncomment baris yang sesuai di `php.ini`:
+
+| Ekstensi | Kegunaan | Baris di php.ini |
+|---|---|---|
+| `zip` | Membaca/menulis file DOCX (format ZIP) | `extension=zip` |
+| `gd` | Pemrosesan gambar oleh PHPWord | `extension=gd` |
+| `fileinfo` | Deteksi tipe MIME file upload | `extension=fileinfo` |
+| `mbstring` | Operasi string multibyte (UTF-8) | `extension=mbstring` |
+| `xml` | Parsing XML dalam DOCX dan PDF | `extension=xml` |
+| `dom` | DOM parser untuk struktur dokumen | `extension=dom` |
+
+Ekstensi `fileinfo`, `mbstring`, `xml`, dan `dom` biasanya sudah aktif secara default. Pastikan `zip` dan `gd` diaktifkan secara eksplisit.
+
+Setelah mengubah `php.ini`, restart server PHP/XAMPP agar perubahan berlaku.
+
 ## Setup Lokal
 
 1. Install dependency PHP:
