@@ -1,58 +1,159 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# VOXORA
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+VOXORA adalah aplikasi Laravel untuk remediasi dokumen STEM agar lebih ramah screen reader dan dapat dikirim ke perangkat EduBraille. Aplikasi ini menyediakan alur upload dokumen, pustaka hasil remediasi, tanya jawab berbasis konteks dokumen, dan pengiriman Braille.
 
-## About Laravel
+## Fitur
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- Autentikasi pengguna: register, login, logout, dan profil.
+- Upload dokumen PDF/DOCX dan penyimpanan metadata ke database.
+- Pustaka dokumen per pengguna.
+- Detail hasil remediasi dokumen.
+- Tanya dokumen dengan riwayat pertanyaan dan jawaban.
+- Pengiriman teks ke EduBraille dengan log pengiriman.
+- Dashboard admin untuk melihat pengguna dan dokumen.
+- Proteksi admin menggunakan kolom `users.is_admin`.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Tech Stack
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+- Laravel 13
+- PHP 8.4
+- SQLite
+- Vite
+- PHPUnit
 
-## Learning Laravel
+Project ini dikembangkan dengan Laravel Herd PHP. PHP aktif yang dipakai:
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
-
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
-
-```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+```text
+C:\Users\user\.config\herd-lite\bin\php.exe
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+## Setup Lokal
 
-## Contributing
+1. Install dependency PHP:
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+```bash
+composer install
+```
 
-## Code of Conduct
+2. Siapkan file environment:
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+```bash
+copy .env.example .env
+php artisan key:generate
+```
 
-## Security Vulnerabilities
+3. Pastikan SQLite database tersedia:
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+```bash
+type nul > database\database.sqlite
+```
 
-## License
+Jika file sudah ada, langkah ini bisa dilewati.
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+4. Jalankan migration:
+
+```bash
+php artisan migrate
+```
+
+5. Install dependency frontend:
+
+```bash
+npm install
+```
+
+6. Jalankan aplikasi:
+
+```bash
+php artisan serve
+```
+
+Untuk Vite:
+
+```bash
+npm run dev
+```
+
+## Database
+
+Project menggunakan SQLite:
+
+```env
+DB_CONNECTION=sqlite
+```
+
+File database:
+
+```text
+database/database.sqlite
+```
+
+Tabel utama aplikasi:
+
+- `users`: akun pengguna, termasuk `is_admin` dan `is_active`.
+- `documents`: metadata dokumen, teks mentah, hasil remediasi, dan status Braille.
+- `braille_deliveries`: log pengiriman ke EduBraille.
+- `document_questions`: riwayat tanya jawab dokumen.
+
+Tabel bawaan Laravel:
+
+- `sessions`
+- `cache`
+- `jobs`
+- `failed_jobs`
+- `password_reset_tokens`
+
+## Admin
+
+Halaman admin hanya bisa diakses user dengan:
+
+```text
+is_admin = true
+```
+
+Route admin:
+
+```text
+/admin
+/admin/users
+/admin/docs
+```
+
+Saat migration role/status dijalankan, user dengan email yang diawali `admin@` otomatis ditandai sebagai admin.
+
+## Testing
+
+Jalankan test:
+
+```bash
+php artisan test
+```
+
+Test yang sudah ada mencakup:
+
+- halaman publik dapat dibuka
+- user non-admin tidak bisa membuka admin
+- user admin bisa membuka admin
+
+## Status Implementasi
+
+Sudah selesai:
+
+- Pondasi database MVP.
+- Relasi model utama.
+- Penyimpanan dokumen ke database.
+- Log pengiriman Braille.
+- Riwayat tanya jawab.
+- Proteksi route admin.
+
+Masih dapat dilanjutkan:
+
+- Ekstraksi teks PDF/DOCX asli.
+- Integrasi AI API untuk remediasi penuh.
+- Halaman histori Braille.
+- Halaman histori Tanya.
+- Pengelolaan perangkat EduBraille.
+
+## Catatan
+
+Saat ini beberapa bagian remediasi dan pengiriman masih memiliki mode simulasi/fallback agar aplikasi tetap bisa berjalan tanpa API eksternal atau perangkat fisik.
