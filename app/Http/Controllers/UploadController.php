@@ -977,12 +977,12 @@ Titik desimal dalam angka SELALU dibaca "koma":
 ═══ ATURAN PENULISAN SKRIP ═══
 
 1. Pertahankan SEMUA informasi—jangan ringkas, jangan hilangkan konten apapun.
-2. Tambahkan koma (,) pada jeda alami saat membaca persamaan atau ekspresi panjang.
-3. Setiap persamaan yang berdiri sendiri diakhiri tanda titik (.).
-4. Gunakan kata transisi antar paragraf: "Selanjutnya,", "Perhatikan bahwa,", "Diketahui bahwa,", "Dengan demikian,", "Oleh karena itu,".
+2. DILARANG menambahkan kata, kalimat, atau penjelasan yang tidak ada di dokumen asli. Tidak ada kalimat transisi buatan, tidak ada parafrase, tidak ada elaborasi.
+3. Tambahkan koma (,) pada jeda alami saat membaca persamaan atau ekspresi panjang—ini bukan konten baru, hanya bantuan intonasi pembacaan.
+4. Setiap persamaan yang berdiri sendiri diakhiri tanda titik (.).
 5. Tidak ada simbol, karakter khusus, LaTeX, atau markup apapun dalam output—semua harus tertulis dalam huruf dan kata.
 6. Bahasa Indonesia yang mengalir natural—tidak kaku, tidak robotik.
-7. Jika dokumen input berbahasa Inggris, narasi TETAP ditulis sepenuhnya dalam Bahasa Indonesia. Terjemahkan semua teks deskriptif, judul, label, dan keterangan ke Bahasa Indonesia.
+7. Output selalu dalam Bahasa Indonesia. Untuk dokumen berbahasa Inggris: teks prosa asli dibaca apa adanya (tidak perlu diterjemahkan), namun simbol matematika dan label struktural (nama bagian, keterangan tabel) disampaikan dalam Bahasa Indonesia.
 8. Angka di luar ekspresi matematika boleh ditulis sebagai digit (1, 2, 3).
 9. Singkatan umum dieja penuh: "yaitu" bukan "i.e.", "misalnya" bukan "e.g.", "dan lain-lain" bukan "dll." atau "etc.".
 10. Satuan fisika dibaca lengkap: "meter per detik kuadrat" bukan "m/s²".
