@@ -10,8 +10,6 @@ VOXORA adalah aplikasi Laravel untuk remediasi dokumen STEM agar lebih ramah scr
 - Detail hasil remediasi dokumen.
 - Tanya dokumen dengan riwayat pertanyaan dan jawaban.
 - Pengiriman teks ke EduBraille dengan log pengiriman.
-- Dashboard admin untuk melihat pengguna dan dokumen.
-- Proteksi admin menggunakan kolom `users.is_admin`.
 
 ## Tech Stack
 
@@ -21,11 +19,6 @@ VOXORA adalah aplikasi Laravel untuk remediasi dokumen STEM agar lebih ramah scr
 - Vite
 - PHPUnit
 
-Project ini dikembangkan dengan Laravel Herd PHP. PHP aktif yang dipakai:
-
-```text
-C:\Users\user\.config\herd-lite\bin\php.exe
-```
 
 ## Setup Lokal
 
@@ -87,73 +80,3 @@ File database:
 ```text
 database/database.sqlite
 ```
-
-Tabel utama aplikasi:
-
-- `users`: akun pengguna, termasuk `is_admin` dan `is_active`.
-- `documents`: metadata dokumen, teks mentah, hasil remediasi, dan status Braille.
-- `braille_deliveries`: log pengiriman ke EduBraille.
-- `document_questions`: riwayat tanya jawab dokumen.
-
-Tabel bawaan Laravel:
-
-- `sessions`
-- `cache`
-- `jobs`
-- `failed_jobs`
-- `password_reset_tokens`
-
-## Admin
-
-Halaman admin hanya bisa diakses user dengan:
-
-```text
-is_admin = true
-```
-
-Route admin:
-
-```text
-/admin
-/admin/users
-/admin/docs
-```
-
-Saat migration role/status dijalankan, user dengan email yang diawali `admin@` otomatis ditandai sebagai admin.
-
-## Testing
-
-Jalankan test:
-
-```bash
-php artisan test
-```
-
-Test yang sudah ada mencakup:
-
-- halaman publik dapat dibuka
-- user non-admin tidak bisa membuka admin
-- user admin bisa membuka admin
-
-## Status Implementasi
-
-Sudah selesai:
-
-- Pondasi database MVP.
-- Relasi model utama.
-- Penyimpanan dokumen ke database.
-- Log pengiriman Braille.
-- Riwayat tanya jawab.
-- Proteksi route admin.
-
-Masih dapat dilanjutkan:
-
-- Ekstraksi teks PDF/DOCX asli.
-- Integrasi AI API untuk remediasi penuh.
-- Halaman histori Braille.
-- Halaman histori Tanya.
-- Pengelolaan perangkat EduBraille.
-
-## Catatan
-
-Saat ini beberapa bagian remediasi dan pengiriman masih memiliki mode simulasi/fallback agar aplikasi tetap bisa berjalan tanpa API eksternal atau perangkat fisik.
