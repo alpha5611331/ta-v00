@@ -104,8 +104,10 @@ class UploadController extends Controller
 
         // ── E. Remediasi ───────────────────────────────────────────
         if ($isPdf) {
-            $remediationResult = $this->tryNarrateWithVision($storedPath)
-                ?? '[Narasi PDF membutuhkan Ghostscript dan OpenAI API key. '
+            $rawNarration = $this->tryNarrateWithVision($storedPath);
+            $remediationResult = $rawNarration !== null
+                ? $this->sanitize($rawNarration)
+                : '[Narasi PDF membutuhkan Ghostscript dan OpenAI API key. '
                 . 'Silakan install Ghostscript dari ghostscript.com, atau unggah file DOCX untuk hasil terbaik.]';
         } else {
             $remediationResult = $this->remediateWithAI($sanitized);
