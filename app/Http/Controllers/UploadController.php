@@ -797,6 +797,7 @@ EKSPONEN:
 AKAR:
 - √x → "akar kuadrat dari x"
 - √(x+1) → "akar kuadrat dari, x ditambah satu"
+- √(2π) → "akar kuadrat dari dua pi"
 - ³√x → "akar pangkat tiga dari x"
 - \sqrt{x} (LaTeX) → "akar kuadrat dari x"
 - \sqrt[n]{x} (LaTeX) → "akar pangkat n dari x"
@@ -804,6 +805,7 @@ AKAR:
 PECAHAN:
 - a/b (sederhana) → "a per b"
 - (a+b)/(c-d) → "a tambah b, per, c kurang d"
+- 1/(√(2π) σ) → "satu per, akar kuadrat dari dua pi, dikali sigma"
 - \frac{a}{b} (LaTeX) → "a per b"
 - \frac{df}{dx} → "d f per d x"
 
@@ -811,6 +813,7 @@ OPERASI DASAR:
 - + → "ditambah"
 - − → "dikurangi"
 - × atau · → "dikali"
+- * (konvolusi antara dua fungsi/sinyal/gambar) → "dikonvolusi dengan"
 - ÷ → "dibagi"
 - ± → "plus atau minus"
 - = → "sama dengan"
@@ -822,9 +825,21 @@ OPERASI DASAR:
 - ≈ → "kurang lebih sama dengan"
 - ∝ → "sebanding dengan"
 - % → "persen"
+- … atau ... → "dan seterusnya"
+- ~ → "kira-kira"
+
+NOTASI FUNGSI:
+- f(x) → "f dari x"
+- f(x, y) → "f dari x koma y"
+- G(x, y) → "G dari x koma y"
+- I(x-i, y-j) → "I dari x dikurangi i koma y dikurangi j"
+PENTING: Koma di dalam argumen fungsi SELALU dibaca "koma" — JANGAN pernah dibaca "titik".
+Tanda kurung argumen fungsi BUKAN tanda kurung biasa; baca sebagai "f dari [argumen]".
 
 KALKULUS:
-- ∑ atau \sum_{i=1}^{n} → "sigma, i dari satu sampai n, dari"
+- ∑ atau \sum_{i=1}^{n} → "jumlah, i dari satu sampai n, dari"
+  PENTING: ∑ (operator penjumlahan) dibaca "jumlah" — JANGAN "sigma"!
+  σ (huruf Yunani sigma kecil) dibaca "sigma". Keduanya adalah simbol yang berbeda.
 - ∫ atau \int_{a}^{b} → "integral dari a sampai b, dari [fungsi] d[variabel]"
 - lim atau \lim_{x \to a} → "limit x mendekati a, dari"
 - d/dx atau \frac{d}{dx} → "turunan terhadap x dari"
@@ -852,12 +867,14 @@ HURUF YUNANI:
 - θ→theta, λ→lambda, μ→mu, ν→nu, ξ→xi, π→pi, ρ→rho
 - σ→sigma, τ→tau, φ→phi, χ→chi, ψ→psi, ω→omega
 - Δ→Delta besar, Σ→Sigma besar, Π→Pi besar, Ω→Omega besar
+Catatan: Σ sebagai nama matriks/himpunan dibaca "Sigma besar". Sebagai operator ∑ dengan batas atas-bawah, dibaca "jumlah".
 
 INDEKS DAN SUBSKRIP:
 - x_i atau xᵢ → "x sub i"
 - a_0 atau a₀ → "a sub nol"
 - v_{max} → "v sub maks"
 - T_{1/2} → "T sub setengah"
+- I_blurred → "I sub blur"
 
 VEKTOR DAN MATRIKS:
 - **v** atau v⃗ → "vektor v"
@@ -868,6 +885,10 @@ VEKTOR DAN MATRIKS:
 - A_{m×n} → "matriks A berukuran m kali n"
 - det(A) → "determinan matriks A"
 - Aᵀ → "transpose matriks A"
+- Matriks angka (grid/tabel nilai) → baca baris per baris:
+  "Baris pertama: [nilai], [nilai], [nilai]. Baris kedua: [nilai], [nilai], [nilai]. Dan seterusnya."
+  Contoh kernel 3×3 dengan nilai 1 2 1 / 2 4 2 / 1 2 1:
+  "Baris pertama: satu, dua, satu. Baris kedua: dua, empat, dua. Baris ketiga: satu, dua, satu."
 
 NILAI MUTLAK DAN NORMA:
 - |x| → "nilai mutlak dari x"
@@ -881,14 +902,30 @@ NOTASI LAINNYA:
 - \left( ... \right) → "kurung buka ... kurung tutup"
 - \left[ ... \right] → "kurung siku buka ... kurung siku tutup"
 - \left\{ ... \right\} → "kurung kurawal buka ... kurung kurawal tutup"
+- ⌈x⌉ → "x dibulatkan ke atas" (fungsi ceiling/langit-langit)
+- ⌊x⌋ → "x dibulatkan ke bawah" (fungsi floor/lantai)
+- ⌈3σ⌉ → "tiga sigma dibulatkan ke atas"
+- O(f(n)) → "O besar dari f dari n" (notasi kompleksitas Big-O)
+- O(k²) → "O besar dari k kuadrat"
+- O(2k) → "O besar dari dua k"
+- Θ(f(n)) → "Theta dari f dari n"
+
+ANGKA DESIMAL:
+Titik desimal dalam angka SELALU dibaca "koma":
+- 2.71828 → "dua koma tujuh satu delapan dua delapan"
+- 0.85 → "nol koma delapan lima"
+- 99.7% → "sembilan puluh sembilan koma tujuh persen"
 
 ═══ STRUKTUR DOKUMEN ═══
 
 - Heading "# Bab 1" atau "# BAB I" → "BAB SATU."  (tulis angka dengan kata)
 - Heading "## Sub-bagian" → "Sub-bagian: [judul]."
 - Heading "### ..." → "Bagian: [judul]."
+- Penomoran bagian "1.", "2.", "3." → "Bagian satu.", "Bagian dua.", "Bagian tiga."
+- Penomoran sub-bagian "1.1.", "2.3." → "Sub-bagian satu titik satu.", "Sub-bagian dua titik tiga."
 - Gambar → "Gambar [nomor]: [deskripsikan dari caption atau konteks sekitar]."
-- Tabel (baris dengan |) → "Tabel [nomor] memuat kolom [daftar nama kolom]. [Baca baris data satu per satu dengan format: baris satu, nilai kolom pertama adalah ..., nilai kolom kedua adalah ..., dan seterusnya.]"
+- Tabel (baris dengan |) → "Tabel [nomor] memuat kolom [daftar nama kolom]. Baca baris data satu per satu: baris satu, nilai kolom pertama adalah ..., nilai kolom kedua adalah ..., dan seterusnya."
+- Tabel parameter (Simbol | Nama | Keterangan) → baca setiap baris: "Simbol [simbol], nama [nama], keterangan: [keterangan]."
 - Contoh soal → "Contoh Soal [nomor]:"
 - Penyelesaian/jawaban → "Penyelesaian:"
 - Definisi → "Definisi:"
@@ -897,7 +934,7 @@ NOTASI LAINNYA:
 - Bukti → "Bukti:"
 - Catatan kaki → "Catatan: [isi]."
 - Numbered list → "Pertama,", "Kedua,", "Ketiga,", dst.
-- Bullet list (prefix -) → "Pertama,", "Kedua,", "Ketiga,", dst.
+- Bullet list (prefix - atau tab) → "Pertama,", "Kedua,", "Ketiga,", dst.
 
 ═══ ATURAN PENULISAN SKRIP ═══
 
@@ -907,9 +944,12 @@ NOTASI LAINNYA:
 4. Gunakan kata transisi antar paragraf: "Selanjutnya,", "Perhatikan bahwa,", "Diketahui bahwa,", "Dengan demikian,", "Oleh karena itu,".
 5. Tidak ada simbol, karakter khusus, LaTeX, atau markup apapun dalam output—semua harus tertulis dalam huruf dan kata.
 6. Bahasa Indonesia yang mengalir natural—tidak kaku, tidak robotik.
-7. Angka di luar ekspresi matematika boleh ditulis sebagai digit (1, 2, 3).
-8. Singkatan umum dieja penuh: "yaitu" bukan "i.e.", "misalnya" bukan "e.g.", "dan lain-lain" bukan "dll." atau "etc.".
-9. Satuan fisika dibaca lengkap: "meter per detik kuadrat" bukan "m/s²".
+7. Jika dokumen input berbahasa Inggris, narasi TETAP ditulis sepenuhnya dalam Bahasa Indonesia. Terjemahkan semua teks deskriptif, judul, label, dan keterangan ke Bahasa Indonesia.
+8. Angka di luar ekspresi matematika boleh ditulis sebagai digit (1, 2, 3).
+9. Singkatan umum dieja penuh: "yaitu" bukan "i.e.", "misalnya" bukan "e.g.", "dan lain-lain" bukan "dll." atau "etc.".
+10. Satuan fisika dibaca lengkap: "meter per detik kuadrat" bukan "m/s²".
+11. Angka desimal dibaca dengan "koma": 2.71 → "dua koma tujuh satu", 0.85 → "nol koma delapan lima".
+12. Notasi perkiraan "approx." dibaca "kurang lebih"; "≈" dibaca "kurang lebih sama dengan"; "~" dibaca "kira-kira".
 
 ═══ TANDA [PERSAMAAN: ...] ═══
 
@@ -924,7 +964,7 @@ di atas. JANGAN lewati atau abaikan satu pun blok [PERSAMAAN: ...].
 WAJIB: Setiap persamaan, rumus, atau ekspresi matematika yang ada di input HARUS
 muncul dalam bentuk narasi di output. Dilarang keras melewati, menghilangkan, atau
 meringkas persamaan. Jika sebuah paragraf di input diawali atau diakhiri dengan
-persamaan, persamaan itu HARUS dinaasikan secara lengkap dalam output.
+persamaan, persamaan itu HARUS dinarasikan secara lengkap dalam output.
 
 Persamaan yang hanya disebut dengan frase seperti "seperti berikut" atau "sebagai berikut"
 tanpa lanjutan narasi persamaannya adalah KESALAHAN. Selalu baca persamaannya.
@@ -938,10 +978,22 @@ Input: [PERSAMAAN: G(x,y)=1/(2πσ2)e-(x2+y2)/(2σ2)]
 Output: G dari x koma y sama dengan, satu per dua kali pi kali sigma kuadrat, dikali e pangkat negatif, x kuadrat ditambah y kuadrat, per dua sigma kuadrat.
 
 Input: I_blurred(x,y) = ∑_(i=-k)^k ∑_(j=-k)^k G(i,j)·I(x-i,y-j)
-Output: I blur dari x koma y sama dengan, sigma dari i sama dengan negatif k sampai k, dari sigma j sama dengan negatif k sampai k, dari G dari i koma j, dikali I dari x dikurangi i koma y dikurangi j.
+Output: I sub blur dari x koma y sama dengan, jumlah dari i sama dengan negatif k sampai k, dari jumlah j sama dengan negatif k sampai k, dari G dari i koma j, dikali I dari x dikurangi i koma y dikurangi j.
+
+Input: I_blurred(x, y) = G(x, y) * I(x, y)
+Output: I sub blur dari x koma y sama dengan, G dari x koma y, dikonvolusi dengan I dari x koma y.
 
 Input: G(x) = 1/(√(2π) σ) e^(x^2/(2σ^2))
 Output: G dari x sama dengan, satu per, akar kuadrat dari dua pi, dikali sigma, dikali e pangkat, x kuadrat per dua sigma kuadrat.
+
+Input: k = ⌈3σ⌉
+Output: k sama dengan tiga sigma dibulatkan ke atas.
+
+Input: kernel 3×3 — 1 2 1 / 2 4 2 / 1 2 1
+Output: Baris pertama: satu, dua, satu. Baris kedua: dua, empat, dua. Baris ketiga: satu, dua, satu.
+
+Input: O(k²) to O(2k)
+Output: O besar dari k kuadrat menjadi O besar dari dua k.
 PROMPT;
     }
 
