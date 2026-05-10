@@ -92,8 +92,13 @@ class UploadController extends Controller
         $rawText   = $this->extractText($file);
         $sanitized = $this->sanitize($rawText);
 
-        // ── E. Remediasi (simulasi) ────────────────────────────────
-        $remediationResult = $this->remediateWithAI($sanitized);
+        // ── E. Remediasi ───────────────────────────────────────────
+        // For PDFs with sparse text (equations as images), try vision first.
+        $storedPath = \Illuminate\Support\Facades\Storage::disk('local')->path($path);
+        $isPdf      = strtolower($file->getClientOriginalExtension()) === 'pdf';
+
+        $remediationResult = ($isPdf ? $this->tryNarrateWithVision($storedPath, $sanitized) : null)
+            ?? $this->remediateWithAI($sanitized);
 
         // ── F. Simpan metadata dan hasil remediasi ke database ─────
         $document = Document::create([
@@ -127,9 +132,10 @@ class UploadController extends Controller
 
         // Cek apakah PhpWord sudah diinstall
         if (!class_exists('\PhpOffice\PhpWord\PhpWord')) {
-            return back()->with('error',
+            return back()->with(
+                'error',
                 'Fitur ekspor Word membutuhkan library PhpWord. ' .
-                'Jalankan: composer require phpoffice/phpword'
+                    'Jalankan: composer require phpoffice/phpword'
             );
         }
 
@@ -172,7 +178,7 @@ class UploadController extends Controller
 
         return response()->download($tmpPath, $filename, [
             'Content-Type' =>
-                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         ])->deleteFileAfterSend(true);
     }
 
@@ -241,27 +247,99 @@ class UploadController extends Controller
 
     private function extractPdfText(string $path): string
     {
+        // pdftotext (Xpdf/Poppler) handles Unicode and multi-column layouts far
+        // better than smalot, and preserves more characters from math fonts.
+        $text = $this->extractPdfWithPdftotext($path);
+        if ($text !== null) {
+            return $text;
+        }
+
+        // Fallback: smalot/pdfparser
         try {
             $parser = new \Smalot\PdfParser\Parser();
             $pdf    = $parser->parseFile($path);
-            return $pdf->getText();
+            $text   = $pdf->getText();
+            return trim($text) !== '' ? $text
+                : '[Tidak ada teks yang dapat diekstrak dari PDF ini. '
+                . 'Kemungkinan persamaan disimpan sebagai gambar (PDF dari Word) '
+                . 'atau menggunakan font matematika tanpa peta Unicode (PDF dari LaTeX).]';
         } catch (\Exception $e) {
             Log::error('PDF parsing gagal: ' . $e->getMessage());
             return '[Gagal mengekstrak teks PDF. Silakan coba file lain.]';
         }
     }
 
+    /**
+     * Ekstrak teks PDF via pdftotext jika tersedia di PATH.
+     * Lebih baik dari smalot untuk font Unicode dan tata letak multi-kolom.
+     * Catatan: PDF yang berasal dari Word menyimpan persamaan sebagai gambar —
+     * tidak ada alat teks yang dapat mengekstraknya tanpa OCR.
+     */
+    private function extractPdfWithPdftotext(string $path): ?string
+    {
+        // Locate binary without shell expansion (security: no user input in path)
+        $binary = trim((string) shell_exec('where pdftotext 2>nul'))
+            ?: trim((string) shell_exec('which pdftotext 2>/dev/null'));
+        $binary = explode("\n", $binary)[0]; // take first result if multiple
+
+        if (!$binary || !is_executable($binary)) {
+            return null;
+        }
+
+        $tmpFile = tempnam(sys_get_temp_dir(), 'voxora_') . '.txt';
+
+        // proc_open avoids shell string interpolation — args are passed as array
+        $descriptor = [1 => ['pipe', 'w'], 2 => ['pipe', 'w']];
+        $proc = proc_open(
+            [$binary, '-layout', '-enc', 'UTF-8', $path, $tmpFile],
+            $descriptor,
+            $pipes
+        );
+
+        if (!is_resource($proc)) {
+            return null;
+        }
+
+        fclose($pipes[1]);
+        $stderr   = stream_get_contents($pipes[2]);
+        fclose($pipes[2]);
+        $exitCode = proc_close($proc);
+
+        if ($exitCode !== 0) {
+            Log::warning("pdftotext exited {$exitCode}: {$stderr}");
+            @unlink($tmpFile);
+            return null;
+        }
+
+        $text = @file_get_contents($tmpFile);
+        @unlink($tmpFile);
+
+        if ($text === false || trim($text) === '') {
+            return null;
+        }
+
+        return $text;
+    }
+
     private function extractDocxText(string $path): string
     {
+        // Primary: parse DOCX XML directly — the only way to capture OMML equations.
+        // phpoffice/phpword silently discards <m:oMath> blocks, so we bypass it for
+        // the initial extraction and fall back to it only if the ZIP cannot be opened.
+        try {
+            return $this->extractDocxFromXml($path);
+        } catch (\Exception $e) {
+            Log::warning('DOCX XML extraction failed, trying phpoffice/phpword: ' . $e->getMessage());
+        }
+
+        // Fallback: phpoffice/phpword (no equations, but better for complex layouts)
         try {
             $phpWord = \PhpOffice\PhpWord\IOFactory::load($path);
             $lines   = [];
             foreach ($phpWord->getSections() as $section) {
                 foreach ($section->getElements() as $el) {
-                    $line = $this->extractElementText($el);
-                    if ($line !== '') {
-                        $lines[] = $line;
-                    }
+                    $line = $this->extractPhpWordElement($el);
+                    if ($line !== '') $lines[] = $line;
                 }
             }
             return implode("\n", $lines);
@@ -271,64 +349,185 @@ class UploadController extends Controller
         }
     }
 
-    private function extractElementText(object $el): string
+    /**
+     * Parse word/document.xml directly from the DOCX ZIP.
+     * This is the only reliable way to extract Office Math (OMML) equations.
+     * Equations are wrapped in [PERSAMAAN: ...] so the AI knows to narrate them.
+     */
+    private function extractDocxFromXml(string $path): string
     {
-        // Title / heading — prefix with hashes so the AI can identify hierarchy
+        $zip = new \ZipArchive();
+        if ($zip->open($path) !== true) {
+            throw new \RuntimeException('Cannot open DOCX as ZIP archive');
+        }
+        $xml = $zip->getFromName('word/document.xml');
+        $zip->close();
+
+        if ($xml === false) {
+            throw new \RuntimeException('word/document.xml not found in DOCX');
+        }
+
+        $dom = new \DOMDocument();
+        libxml_use_internal_errors(true);
+        $dom->loadXML($xml);
+        libxml_clear_errors();
+
+        $xpath = new \DOMXPath($dom);
+        $xpath->registerNamespace('w', 'http://schemas.openxmlformats.org/wordprocessingml/2006/main');
+        $xpath->registerNamespace('m', 'http://schemas.openxmlformats.org/officeDocument/2006/math');
+
+        $body = $dom->getElementsByTagNameNS(
+            'http://schemas.openxmlformats.org/wordprocessingml/2006/main',
+            'body'
+        )->item(0);
+
+        if (!$body) {
+            throw new \RuntimeException('Document body not found in word/document.xml');
+        }
+
+        $lines = [];
+        foreach ($body->childNodes as $node) {
+            $text = trim($this->extractXmlNode($node, $xpath));
+            if ($text !== '') $lines[] = $text;
+        }
+
+        return implode("\n", $lines);
+    }
+
+    private function extractXmlNode(\DOMNode $node, \DOMXPath $xpath): string
+    {
+        $name = $node->localName ?? '';
+
+        switch ($name) {
+            case 'p':
+                // Determine heading level from paragraph style
+                $styleAttr = $xpath->query('.//w:pStyle/@w:val', $node)->item(0);
+                $style     = $styleAttr ? strtolower($styleAttr->nodeValue) : '';
+
+                $text = '';
+                foreach ($node->childNodes as $child) {
+                    $text .= $this->extractXmlNode($child, $xpath);
+                }
+                $text = trim($text);
+                if ($text === '') return '';
+
+                if (preg_match('/heading(\d)/i', $style, $m)) {
+                    return str_repeat('#', (int) $m[1]) . ' ' . $text;
+                }
+                if (in_array($style, ['title', 'subtitle'])) {
+                    return '# ' . $text;
+                }
+                return $text;
+
+            case 'r':   // text run — recurse
+                $out = '';
+                foreach ($node->childNodes as $child) {
+                    $out .= $this->extractXmlNode($child, $xpath);
+                }
+                return $out;
+
+            case 't':   // plain text leaf
+                return $node->textContent;
+
+            case 'br':
+                return "\n";
+            case 'tab':
+                return "\t";
+
+            case 'oMath':      // inline equation block
+            case 'oMathPara':  // display equation block
+                $chars = $xpath->query('.//m:t', $node);
+                $eq    = '';
+                foreach ($chars as $t) {
+                    $eq .= $t->textContent;
+                }
+                // Clean Word display artifacts before wrapping
+                $eq = strtr($eq, ['▒' => '', '〖' => '(', '〗' => ')']);
+                $eq = trim($eq);
+                return $eq !== '' ? '[PERSAMAAN: ' . $eq . ']' : '';
+
+            case 'tbl':  // table
+                $rows = [];
+                foreach ($xpath->query('w:tr', $node) as $row) {
+                    $cells = [];
+                    foreach ($xpath->query('w:tc', $row) as $cell) {
+                        $cellText = '';
+                        foreach ($cell->childNodes as $child) {
+                            $cellText .= $this->extractXmlNode($child, $xpath);
+                        }
+                        $cells[] = trim($cellText);
+                    }
+                    $rows[] = implode(' | ', $cells);
+                }
+                return implode("\n", $rows);
+
+                // Skip formatting/metadata elements
+            case 'pPr':
+            case 'rPr':
+            case 'sectPr':
+            case 'bookmarkStart':
+            case 'bookmarkEnd':
+            case 'proofErr':
+            case 'lastRenderedPageBreak':
+            case 'instrText':
+            case 'fldChar':
+                return '';
+
+            default:
+                $out = '';
+                foreach ($node->childNodes as $child) {
+                    $out .= $this->extractXmlNode($child, $xpath);
+                }
+                return $out;
+        }
+    }
+
+    // phpoffice/phpword fallback — used when ZIP parsing fails
+    private function extractPhpWordElement(object $el): string
+    {
         if ($el instanceof \PhpOffice\PhpWord\Element\Title) {
             $depth = method_exists($el, 'getDepth') ? (int) $el->getDepth() : 1;
             $inner = $el->getText();
-            $text  = is_string($inner) ? $inner : $this->extractElementText($inner);
+            $text  = is_string($inner) ? $inner : $this->extractPhpWordElement($inner);
             return str_repeat('#', max(1, $depth)) . ' ' . trim($text);
         }
-
-        // Paragraph and TextRun — recurse into children
-        if ($el instanceof \PhpOffice\PhpWord\Element\Paragraph ||
-            $el instanceof \PhpOffice\PhpWord\Element\TextRun) {
+        if (
+            $el instanceof \PhpOffice\PhpWord\Element\Paragraph ||
+            $el instanceof \PhpOffice\PhpWord\Element\TextRun
+        ) {
             $parts = [];
             foreach ($el->getElements() as $child) {
-                $t = $this->extractElementText($child);
+                $t = $this->extractPhpWordElement($child);
                 if ($t !== '') $parts[] = $t;
             }
             return implode('', $parts);
         }
-
-        // Plain text leaf
         if ($el instanceof \PhpOffice\PhpWord\Element\Text) {
             return $el->getText();
         }
-
-        // Hyperlink — use visible text
         if ($el instanceof \PhpOffice\PhpWord\Element\Link) {
             return $el->getText();
         }
-
-        // List item — indent marker for AI structure cues
         if ($el instanceof \PhpOffice\PhpWord\Element\ListItem) {
-            $depth  = method_exists($el, 'getDepth') ? (int) $el->getDepth() : 0;
-            $prefix = str_repeat('  ', $depth) . '- ';
-            $obj    = $el->getTextObject();
-            $text   = method_exists($obj, 'getText') ? $obj->getText() : '';
-            return $prefix . trim($text);
+            $obj  = $el->getTextObject();
+            return '- ' . (method_exists($obj, 'getText') ? $obj->getText() : '');
         }
-
-        // Table — serialize as pipe-delimited rows
         if ($el instanceof \PhpOffice\PhpWord\Element\Table) {
             $rows = [];
             foreach ($el->getRows() as $row) {
                 $cells = [];
                 foreach ($row->getCells() as $cell) {
-                    $cellParts = [];
+                    $parts = [];
                     foreach ($cell->getElements() as $cellEl) {
-                        $t = $this->extractElementText($cellEl);
-                        if ($t !== '') $cellParts[] = $t;
+                        $t = $this->extractPhpWordElement($cellEl);
+                        if ($t !== '') $parts[] = $t;
                     }
-                    $cells[] = implode(' ', $cellParts);
+                    $cells[] = implode(' ', $parts);
                 }
                 $rows[] = implode(' | ', $cells);
             }
             return implode("\n", $rows);
         }
-
         return '';
     }
 
@@ -352,6 +551,170 @@ class UploadController extends Controller
         return trim(implode("\n", $result));
     }
 
+    // ──────────────────────────────────────────────────────────────
+    //  VISION-BASED NARRATION (PDF pages as images → GPT-4o vision)
+    // ──────────────────────────────────────────────────────────────
+
+    /**
+     * Try to narrate a PDF using page images sent to GPT-4o vision.
+     * Used when text extraction is sparse (equations stored as raster images).
+     * Returns null if vision is unavailable or not needed.
+     */
+    private function tryNarrateWithVision(string $pdfPath, string $extractedText): ?string
+    {
+        if (!config('services.openai.api_key')) return null;
+
+        // Skip vision if text extraction already yielded substantial content
+        if (str_word_count($extractedText) > 300) return null;
+
+        $gs = $this->findGhostscript();
+        if (!$gs) {
+            Log::info('Vision PDF skipped: Ghostscript not found. Install from ghostscript.com to enable.');
+            return null;
+        }
+
+        try {
+            return $this->narratePdfPagesWithVision($pdfPath, $gs);
+        } catch (\Exception $e) {
+            Log::error('Vision PDF narration failed: ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Find the Ghostscript binary on the current system.
+     */
+    private function findGhostscript(): ?string
+    {
+        $candidates = PHP_OS_FAMILY === 'Windows'
+            ? ['gswin64c', 'gswin32c', 'gs']
+            : ['gs'];
+
+        foreach ($candidates as $bin) {
+            $cmd  = PHP_OS_FAMILY === 'Windows' ? "where {$bin} 2>nul" : "which {$bin} 2>/dev/null";
+            $path = trim((string) shell_exec($cmd));
+            $path = explode("\n", $path)[0]; // first result only
+            if ($path && is_executable($path)) {
+                return $path;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Render each PDF page to a PNG via Ghostscript, then narrate each with vision.
+     */
+    private function narratePdfPagesWithVision(string $pdfPath, string $gs): ?string
+    {
+        $tmpDir = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'voxora_' . uniqid();
+        mkdir($tmpDir, 0700, true);
+
+        try {
+            $outPattern = $tmpDir . DIRECTORY_SEPARATOR . 'page_%d.png';
+
+            $proc = proc_open(
+                [
+                    $gs,
+                    '-dNOPAUSE',
+                    '-dBATCH',
+                    '-dQUIET',
+                    '-sDEVICE=png16m',
+                    '-r150',
+                    '-sOutputFile=' . $outPattern,
+                    $pdfPath
+                ],
+                [1 => ['pipe', 'w'], 2 => ['pipe', 'w']],
+                $pipes
+            );
+
+            if (!is_resource($proc)) {
+                throw new \RuntimeException('Failed to start Ghostscript');
+            }
+            fclose($pipes[1]);
+            $stderr   = stream_get_contents($pipes[2]);
+            fclose($pipes[2]);
+            $exitCode = proc_close($proc);
+
+            if ($exitCode !== 0) {
+                throw new \RuntimeException("Ghostscript exited {$exitCode}: {$stderr}");
+            }
+
+            $pages = glob($tmpDir . DIRECTORY_SEPARATOR . 'page_*.png');
+            natsort($pages);
+            $pages = array_values(array_slice($pages, 0, 10)); // cap at 10 pages
+
+            if (empty($pages)) {
+                throw new \RuntimeException('Ghostscript produced no page images');
+            }
+
+            $narrations = [];
+            $total      = count($pages);
+            foreach ($pages as $i => $pageFile) {
+                $b64       = base64_encode(file_get_contents($pageFile));
+                $narration = $this->narratePageWithVision($b64, $i + 1, $total);
+                if ($narration !== null) {
+                    $narrations[] = $narration;
+                }
+            }
+
+            return $narrations ? implode("\n\n", $narrations) : null;
+        } finally {
+            array_map('unlink', glob($tmpDir . DIRECTORY_SEPARATOR . '*'));
+            @rmdir($tmpDir);
+        }
+    }
+
+    /**
+     * Send one PDF page image to GPT-4o vision and return the narration.
+     */
+    private function narratePageWithVision(string $base64Png, int $pageNum, int $totalPages): ?string
+    {
+        try {
+            $response = Http::timeout(90)
+                ->withToken(config('services.openai.api_key'))
+                ->post(config('services.openai.endpoint', 'https://api.openai.com/v1/chat/completions'), [
+                    'model'       => 'gpt-4o',
+                    'temperature' => 0.2,
+                    'max_tokens'  => 4096,
+                    'messages'    => [
+                        ['role' => 'system', 'content' => $this->narrationSystemPrompt()],
+                        [
+                            'role'    => 'user',
+                            'content' => [
+                                [
+                                    'type' => 'text',
+                                    'text' => "Ini adalah halaman {$pageNum} dari {$totalPages} halaman dokumen STEM. "
+                                        . "Buat skrip narasi lengkap dari semua konten yang terlihat di halaman ini, "
+                                        . "termasuk setiap rumus, persamaan, tabel, dan gambar.",
+                                ],
+                                [
+                                    'type'      => 'image_url',
+                                    'image_url' => [
+                                        'url'    => 'data:image/png;base64,' . $base64Png,
+                                        'detail' => 'high',
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ]);
+
+            if ($response->successful()) {
+                return trim($response->json('choices.0.message.content', '')) ?: null;
+            }
+
+            Log::warning("Vision API page {$pageNum} error: " . $response->status() . ' ' . $response->body());
+            return null;
+        } catch (\Exception $e) {
+            Log::error("Vision narration page {$pageNum} failed: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    //  TEXT-BASED NARRATION
+    // ──────────────────────────────────────────────────────────────
+
     /**
      * Remediasi konten STEM via AI (RAG approach).
      *
@@ -366,7 +729,55 @@ class UploadController extends Controller
      */
     private function remediateWithAI(string $sanitized): string
     {
-        $systemPrompt = <<<'PROMPT'
+        $systemPrompt = $this->narrationSystemPrompt();
+
+        // ── Fallback ke simulasi jika tidak ada API key ────────────
+        if (!config('services.openai.api_key')) {
+            return $this->simulateRemediation($sanitized);
+        }
+
+        // ── Bersihkan artefak tampilan Word sebelum dikirim ke AI ──
+        $sanitized = $this->cleanWordMathArtifacts($sanitized);
+
+        // ── Potong teks menjadi segmen 4000 karakter ───────────────
+        $segments = $this->splitIntoSegments($sanitized, 4000);
+        $results  = [];
+
+        foreach ($segments as $segment) {
+            try {
+                $response = Http::timeout(60)
+                    ->withToken(config('services.openai.api_key'))
+                    ->post(config('services.openai.endpoint', 'https://api.openai.com/v1/chat/completions'), [
+                        'model'       => 'gpt-4o-mini',
+                        'temperature' => 0.2,
+                        'max_tokens'  => 4096,
+                        'messages'    => [
+                            ['role' => 'system', 'content' => $systemPrompt],
+                            ['role' => 'user',   'content' => $segment],
+                        ],
+                    ]);
+
+                if ($response->successful()) {
+                    $results[] = trim($response->json('choices.0.message.content', ''));
+                } else {
+                    Log::warning('AI API error: ' . $response->status() . ' – ' . $response->body());
+                    $results[] = $this->simulateRemediation($segment);
+                }
+            } catch (\Exception $e) {
+                Log::error('AI request gagal: ' . $e->getMessage());
+                $results[] = $this->simulateRemediation($segment);
+            }
+        }
+
+        return implode("\n\n", array_filter($results));
+    }
+
+    /**
+     * Shared narration system prompt used by both text and vision paths.
+     */
+    private function narrationSystemPrompt(): string
+    {
+        return <<<'PROMPT'
 Kamu adalah penulis skrip narasi STEM profesional untuk tunanetra Indonesia.
 
 Tugas: ubah teks dokumen STEM menjadi SKRIP NARASI yang siap dibacakan oleh screen reader atau mesin Braille, tanpa kehilangan satu pun informasi dari dokumen asli.
@@ -499,44 +910,39 @@ NOTASI LAINNYA:
 7. Angka di luar ekspresi matematika boleh ditulis sebagai digit (1, 2, 3).
 8. Singkatan umum dieja penuh: "yaitu" bukan "i.e.", "misalnya" bukan "e.g.", "dan lain-lain" bukan "dll." atau "etc.".
 9. Satuan fisika dibaca lengkap: "meter per detik kuadrat" bukan "m/s²".
+
+═══ TANDA [PERSAMAAN: ...] ═══
+
+Teks dari dokumen DOCX mungkin mengandung blok [PERSAMAAN: ...]. Blok ini berisi
+persamaan matematika yang diekstrak dari format OMML Microsoft Word. Isi di dalamnya
+adalah karakter-karakter mentah dari persamaan tersebut. Kamu WAJIB membaca dan
+menerjemahkan SETIAP blok [PERSAMAAN: ...] menjadi narasi lengkap sesuai konvensi
+di atas. JANGAN lewati atau abaikan satu pun blok [PERSAMAAN: ...].
+
+═══ ATURAN WAJIB TENTANG PERSAMAAN ═══
+
+WAJIB: Setiap persamaan, rumus, atau ekspresi matematika yang ada di input HARUS
+muncul dalam bentuk narasi di output. Dilarang keras melewati, menghilangkan, atau
+meringkas persamaan. Jika sebuah paragraf di input diawali atau diakhiri dengan
+persamaan, persamaan itu HARUS dinaasikan secara lengkap dalam output.
+
+Persamaan yang hanya disebut dengan frase seperti "seperti berikut" atau "sebagai berikut"
+tanpa lanjutan narasi persamaannya adalah KESALAHAN. Selalu baca persamaannya.
+
+═══ CONTOH NARASI PERSAMAAN ═══
+
+Input: G(x, y)=1/(2πσ^2) e^(-(x^2+y^2)/(2σ^2))
+Output: G dari x koma y sama dengan, satu per dua kali pi kali sigma kuadrat, dikali e pangkat negatif, x kuadrat ditambah y kuadrat, per dua sigma kuadrat.
+
+Input: [PERSAMAAN: G(x,y)=1/(2πσ2)e-(x2+y2)/(2σ2)]
+Output: G dari x koma y sama dengan, satu per dua kali pi kali sigma kuadrat, dikali e pangkat negatif, x kuadrat ditambah y kuadrat, per dua sigma kuadrat.
+
+Input: I_blurred(x,y) = ∑_(i=-k)^k ∑_(j=-k)^k G(i,j)·I(x-i,y-j)
+Output: I blur dari x koma y sama dengan, sigma dari i sama dengan negatif k sampai k, dari sigma j sama dengan negatif k sampai k, dari G dari i koma j, dikali I dari x dikurangi i koma y dikurangi j.
+
+Input: G(x) = 1/(√(2π) σ) e^(x^2/(2σ^2))
+Output: G dari x sama dengan, satu per, akar kuadrat dari dua pi, dikali sigma, dikali e pangkat, x kuadrat per dua sigma kuadrat.
 PROMPT;
-
-        // ── Fallback ke simulasi jika tidak ada API key ────────────
-        if (!config('services.openai.api_key')) {
-            return $this->simulateRemediation($sanitized);
-        }
-
-        // ── Potong teks menjadi segmen 4000 karakter ───────────────
-        $segments = $this->splitIntoSegments($sanitized, 4000);
-        $results  = [];
-
-        foreach ($segments as $segment) {
-            try {
-                $response = Http::timeout(60)
-                    ->withToken(config('services.openai.api_key'))
-                    ->post(config('services.openai.endpoint', 'https://api.openai.com/v1/chat/completions'), [
-                        'model'       => 'gpt-4o-mini',
-                        'temperature' => 0.2,
-                        'max_tokens'  => 4096,
-                        'messages'    => [
-                            ['role' => 'system', 'content' => $systemPrompt],
-                            ['role' => 'user',   'content' => $segment],
-                        ],
-                    ]);
-
-                if ($response->successful()) {
-                    $results[] = trim($response->json('choices.0.message.content', ''));
-                } else {
-                    Log::warning('AI API error: ' . $response->status() . ' – ' . $response->body());
-                    $results[] = $this->simulateRemediation($segment);
-                }
-            } catch (\Exception $e) {
-                Log::error('AI request gagal: ' . $e->getMessage());
-                $results[] = $this->simulateRemediation($segment);
-            }
-        }
-
-        return implode("\n\n", array_filter($results));
     }
 
     /**
@@ -568,7 +974,7 @@ PROMPT;
             '/θ/'                => 'theta',
             '/°/'                => 'derajat',
             // Persamaan / pertidaksamaan
-            '/(\w+)\s*=\s*(\w+)/'=> '$1 sama dengan $2',
+            '/(\w+)\s*=\s*(\w+)/' => '$1 sama dengan $2',
         ];
 
         $result = preg_replace(
@@ -579,9 +985,24 @@ PROMPT;
 
         // Tambahkan catatan simulasi
         $note = "\n\n[SIMULASI: Teks di atas adalah hasil remediasi offline. "
-              . "Sambungkan AI API untuk remediasi penuh.]";
+            . "Sambungkan AI API untuk remediasi penuh.]";
 
         return trim($result) . $note;
+    }
+
+    /**
+     * Bersihkan artefak tampilan dari format persamaan Word (Linear Format / OMML).
+     * Karakter-karakter ini adalah sisa render Word yang tidak bermakna sebagai teks.
+     */
+    private function cleanWordMathArtifacts(string $text): string
+    {
+        return strtr($text, [
+            '▒' => '',    // U+2592 — pemisah visual antar elemen persamaan Word
+            '〖' => '(',  // U+3016 — bracket kiri persamaan Word
+            '〗' => ')',  // U+3017 — bracket kanan persamaan Word
+            '⁢'  => '',   // U+2062 — invisible times (Unicode math)
+            '⁣'  => '',   // U+2063 — invisible separator (Unicode math)
+        ]);
     }
 
     /**
@@ -638,20 +1059,54 @@ PROMPT;
     {
         $map = [
             // Huruf (a-z)
-            'a' => '⠁', 'b' => '⠃', 'c' => '⠉', 'd' => '⠙', 'e' => '⠑',
-            'f' => '⠋', 'g' => '⠛', 'h' => '⠓', 'i' => '⠊', 'j' => '⠚',
-            'k' => '⠅', 'l' => '⠇', 'm' => '⠍', 'n' => '⠝', 'o' => '⠕',
-            'p' => '⠏', 'q' => '⠟', 'r' => '⠗', 's' => '⠎', 't' => '⠞',
-            'u' => '⠥', 'v' => '⠧', 'w' => '⠺', 'x' => '⠭', 'y' => '⠽',
+            'a' => '⠁',
+            'b' => '⠃',
+            'c' => '⠉',
+            'd' => '⠙',
+            'e' => '⠑',
+            'f' => '⠋',
+            'g' => '⠛',
+            'h' => '⠓',
+            'i' => '⠊',
+            'j' => '⠚',
+            'k' => '⠅',
+            'l' => '⠇',
+            'm' => '⠍',
+            'n' => '⠝',
+            'o' => '⠕',
+            'p' => '⠏',
+            'q' => '⠟',
+            'r' => '⠗',
+            's' => '⠎',
+            't' => '⠞',
+            'u' => '⠥',
+            'v' => '⠧',
+            'w' => '⠺',
+            'x' => '⠭',
+            'y' => '⠽',
             'z' => '⠵',
             // Angka (awali dengan ⠼)
-            '0' => '⠼⠚', '1' => '⠼⠁', '2' => '⠼⠃', '3' => '⠼⠉',
-            '4' => '⠼⠙', '5' => '⠼⠑', '6' => '⠼⠋', '7' => '⠼⠛',
-            '8' => '⠼⠓', '9' => '⠼⠊',
+            '0' => '⠼⠚',
+            '1' => '⠼⠁',
+            '2' => '⠼⠃',
+            '3' => '⠼⠉',
+            '4' => '⠼⠙',
+            '5' => '⠼⠑',
+            '6' => '⠼⠋',
+            '7' => '⠼⠛',
+            '8' => '⠼⠓',
+            '9' => '⠼⠊',
             // Tanda baca
-            ' ' => '⠀', ',' => '⠂', '.' => '⠄', '?' => '⠦',
-            '!' => '⠖', ':' => '⠒', ';' => '⠆', '-' => '⠤',
-            '(' => '⠦', ')' => '⠴',
+            ' ' => '⠀',
+            ',' => '⠂',
+            '.' => '⠄',
+            '?' => '⠦',
+            '!' => '⠖',
+            ':' => '⠒',
+            ';' => '⠆',
+            '-' => '⠤',
+            '(' => '⠦',
+            ')' => '⠴',
         ];
 
         $lower  = mb_strtolower($text);
