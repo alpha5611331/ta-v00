@@ -88,17 +88,28 @@ class UploadController extends Controller
         // Storage::disk('local') tidak butuh model — aman
         $path = $file->store('uploads/' . Auth::id(), 'local');
 
-        // ── C & D. Ekstrak + sanitasi ──────────────────────────────
-        $rawText   = $this->extractText($file);
-        $sanitized = $this->sanitize($rawText);
+        // ── C & D. Ekstrak + sanitasi (DOCX only) ─────────────────
+        $isPdf      = strtolower($file->getClientOriginalExtension()) === 'pdf';
+        $storedPath = \Illuminate\Support\Facades\Storage::disk('local')->path($path);
+
+        if ($isPdf) {
+            // PDFs use vision exclusively — equations are rasterized images in PDF
+            // and cannot be reliably extracted as text.
+            $rawText   = '';
+            $sanitized = '';
+        } else {
+            $rawText   = $this->extractText($file);
+            $sanitized = $this->sanitize($rawText);
+        }
 
         // ── E. Remediasi ───────────────────────────────────────────
-        // For PDFs with sparse text (equations as images), try vision first.
-        $storedPath = \Illuminate\Support\Facades\Storage::disk('local')->path($path);
-        $isPdf      = strtolower($file->getClientOriginalExtension()) === 'pdf';
-
-        $remediationResult = ($isPdf ? $this->tryNarrateWithVision($storedPath, $sanitized) : null)
-            ?? $this->remediateWithAI($sanitized);
+        if ($isPdf) {
+            $remediationResult = $this->tryNarrateWithVision($storedPath)
+                ?? '[Narasi PDF membutuhkan Ghostscript dan OpenAI API key. '
+                . 'Silakan install Ghostscript dari ghostscript.com, atau unggah file DOCX untuk hasil terbaik.]';
+        } else {
+            $remediationResult = $this->remediateWithAI($sanitized);
+        }
 
         // ── F. Simpan metadata dan hasil remediasi ke database ─────
         $document = Document::create([
@@ -560,12 +571,9 @@ class UploadController extends Controller
      * Used when text extraction is sparse (equations stored as raster images).
      * Returns null if vision is unavailable or not needed.
      */
-    private function tryNarrateWithVision(string $pdfPath, string $extractedText): ?string
+    private function tryNarrateWithVision(string $pdfPath): ?string
     {
         if (!config('services.openai.api_key')) return null;
-
-        // Skip vision if text extraction already yielded substantial content
-        if (str_word_count($extractedText) > 300) return null;
 
         $gs = $this->findGhostscript();
         if (!$gs) {
