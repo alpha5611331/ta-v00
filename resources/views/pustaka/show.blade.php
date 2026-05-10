@@ -155,6 +155,7 @@
         <form method="POST" action="{{ route('upload.export') }}">
             @csrf
             <input type="hidden" name="result_text" value="{{ $document->remediated_text ?? '' }}">
+            <input type="hidden" name="document_title" value="{{ $document->original_filename ?? 'Dokumen' }}">
             <button type="submit"
                 class="flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm
                        text-white border-2 border-black hover:brightness-90 active:scale-95

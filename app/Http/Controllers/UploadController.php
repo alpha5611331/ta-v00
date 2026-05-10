@@ -89,22 +89,20 @@ class UploadController extends Controller
         $path = $file->store('uploads/' . Auth::id(), 'local');
 
         // ── C & D. Ekstrak + sanitasi ──────────────────────────────
-        // Saat ini simulasi — library smalot/pdfparser & phpoffice/phpword
-        // belum dipasang. Aktifkan extractText() setelah composer install.
-        $rawText   = '[Teks dari dokumen ' . $file->getClientOriginalName() . ']';
+        $rawText   = $this->extractText($file);
         $sanitized = $this->sanitize($rawText);
 
         // ── E. Remediasi (simulasi) ────────────────────────────────
         $remediationResult = $this->remediateWithAI($sanitized);
 
-        // ── F. Simpan metadata dan hasil remediasi ke database ─────
+        // ── F. Simpan dokumen ke database ────────────────────────
         $document = Document::create([
             'user_id'           => Auth::id(),
             'original_filename' => $file->getClientOriginalName(),
             'storage_path'      => $path,
-            'raw_text'          => $sanitized,
+            'raw_text'          => $rawText,
             'remediated_text'   => $remediationResult,
-            'char_count'        => mb_strlen($remediationResult),
+            'char_count'        => strlen($remediationResult),
             'file_type'         => strtolower($file->getClientOriginalExtension()),
             'braille_sent_at'   => null,
         ]);
@@ -112,6 +110,7 @@ class UploadController extends Controller
         return view('upload', [
             'remediationResult' => $remediationResult,
             'document'          => $document,
+            'originalFilename'  => $file->getClientOriginalName(),
         ])->with('success', 'Remediasi dokumen berhasil diselesaikan.');
     }
 
@@ -123,9 +122,29 @@ class UploadController extends Controller
      * Ekspor teks hasil remediasi ke file .docx.
      * Menggunakan PhpWord. Jalankan: composer require phpoffice/phpword
      */
+    /**
+     * Simpan teks remediasi ke session lalu arahkan ke halaman /braille.
+     * Dipakai tombol "Kirim ke EduBraille" di halaman upload.
+     */
+    public function toBraille(\Illuminate\Http\Request $request)
+    {
+        $request->validate([
+            'result_text' => 'required|string|max:500000',
+        ]);
+
+        // Simpan teks ke session agar bisa dibaca di halaman /braille
+        session(['braille_text' => $request->input('result_text')]);
+
+        return redirect()->route('braille.index')
+            ->with('success', 'Teks hasil remediasi siap dikirim. Pilih ukuran chunk lalu tekan Kirim.');
+    }
+
     public function export(Request $request)
     {
-        $request->validate(['result_text' => 'required|string|max:500000']);
+        $request->validate([
+            'result_text' => 'required|string|max:500000',
+            'document_title' => 'nullable|string|max:255'
+        ]);
 
         // Cek apakah PhpWord sudah diinstall
         if (!class_exists('\PhpOffice\PhpWord\PhpWord')) {
@@ -135,37 +154,46 @@ class UploadController extends Controller
             );
         }
 
-        $text     = $request->input('result_text');
-        $filename = 'VOXORA_Remediasi_' . now()->format('Ymd_His') . '.docx';
-        $tmpPath  = sys_get_temp_dir() . DIRECTORY_SEPARATOR . $filename;
+        $text = $request->input('result_text');
+        $documentTitle = $request->input('document_title', 'Dokumen');
+        
+        // Clean filename: remove extension and special characters
+        $cleanTitle = preg_replace('/\.[^.]+$/', '', $documentTitle); // remove extension
+        $cleanTitle = preg_replace('/[^a-zA-Z0-9\s\-_]/', '', $cleanTitle); // remove special chars
+        $cleanTitle = trim($cleanTitle);
+        
+        $filename = 'Remediasi Dokumen ' . $cleanTitle . '.docx';
+        $tmpPath = sys_get_temp_dir() . DIRECTORY_SEPARATOR . $filename;
 
-        $phpWord  = new \PhpOffice\PhpWord\PhpWord();
+        $phpWord = new \PhpOffice\PhpWord\PhpWord();
         $phpWord->setDefaultFontName('Arial');
         $phpWord->setDefaultFontSize(12);
 
         $section = $phpWord->addSection([
-            'marginTop'    => 1440,
+            'marginTop' => 1440,
             'marginBottom' => 1440,
-            'marginLeft'   => 1800,
-            'marginRight'  => 1800,
+            'marginLeft' => 1800,
+            'marginRight' => 1800,
         ]);
 
-        $section->addTitle('Hasil Remediasi Dokumen – VOXORA', 1);
-        $section->addText(
-            'Tanggal: ' . now()->translatedFormat('d F Y, H:i'),
-            ['italic' => true, 'color' => '555555'],
-            ['spaceAfter' => 240]
-        );
-        $section->addTextBreak(1);
-
-        foreach (explode("\n\n", $text) as $para) {
-            $para = trim($para);
-            if ($para !== '') {
+        // Title as Heading 1
+        $section->addTitle('Hasil Remediasi Dokumen ' . $cleanTitle . ' oleh VOXORA', 1);
+        
+        // Content as Normal text (strip HTML tags)
+        $lines = explode("\n", $text);
+        foreach ($lines as $line) {
+            $line = trim($line);
+            if ($line !== '') {
+                // Strip HTML tags
+                $cleanLine = strip_tags($line);
                 $section->addText(
-                    htmlspecialchars($para),
+                    $cleanLine,
                     ['size' => 12, 'name' => 'Arial'],
-                    ['lineHeight' => 1.5, 'spaceAfter' => 160]
+                    ['lineHeight' => 1.5, 'spaceAfter' => 120]
                 );
+            } else {
+                // Add empty line for paragraph breaks
+                $section->addTextBreak(1);
             }
         }
 
@@ -203,9 +231,17 @@ class UploadController extends Controller
 
         // ── B. Konversi setiap chunk ke Unicode Braille ────────────
         $brailleChunks = array_map(function (string $chunk) {
+            // Clean UTF-8 encoding to prevent JSON errors
+            $cleanChunk = mb_convert_encoding($chunk, 'UTF-8', 'UTF-8');
+            $cleanChunk = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', '', $cleanChunk);
+            
+            // Convert to braille and ensure UTF-8
+            $brailleText = $this->convertToBraille($cleanChunk);
+            $brailleText = mb_convert_encoding($brailleText, 'UTF-8', 'UTF-8');
+            
             return [
-                'text'    => $chunk,
-                'braille' => $this->convertToBraille($chunk),
+                'text'    => $cleanChunk,
+                'braille' => $brailleText,
             ];
         }, $chunks);
 
@@ -374,6 +410,9 @@ PROMPT;
     private function simulateRemediation(string $text): string
     {
         $replacements = [
+            // Soal numbers
+            '/(\d+)\./'            => 'Soal nomor $1.',
+            '/^(\d+)\s/'          => 'Soal nomor $1 ',
             // Pangkat
             '/(\w+)\^2/'         => '$1 kuadrat',
             '/(\w+)\^3/'         => '$1 kubik',
@@ -405,11 +444,7 @@ PROMPT;
             $text
         );
 
-        // Tambahkan catatan simulasi
-        $note = "\n\n[SIMULASI: Teks di atas adalah hasil remediasi offline. "
-              . "Sambungkan AI API untuk remediasi penuh.]";
-
-        return trim($result) . $note;
+        return trim($result);
     }
 
     /**
@@ -513,18 +548,40 @@ PROMPT;
 
         // ── Kirim ke API EduBraille (jika tersedia) ────────────────
         try {
-            $response = Http::timeout(15)
+            // Ensure chunks are JSON-safe
+            $safeChunks = array_map(function ($chunk) {
+                return [
+                    'text'    => mb_convert_encoding($chunk['text'], 'UTF-8', 'UTF-8'),
+                    'braille' => mb_convert_encoding($chunk['braille'], 'UTF-8', 'UTF-8'),
+                ];
+            }, $chunks);
+            
+            // Use JSON_UNESCAPED_UNICODE to prevent encoding issues
+            $jsonData = json_encode([
+                'device_id' => config('services.edubraille.device_id', 'DEFAULT'),
+                'chunks'    => $safeChunks,
+            ], JSON_UNESCAPED_UNICODE);
+            
+            // Try with longer timeout and retry logic
+            $response = Http::timeout(30)
                 ->withToken(config('services.edubraille.token', ''))
-                ->post($edubrailleUrl . '/receive', [
-                    'device_id' => config('services.edubraille.device_id', 'DEFAULT'),
-                    'chunks'    => $chunks,
-                ]);
+                ->withHeaders(['Content-Type' => 'application/json'])
+                ->post($edubrailleUrl . '/receive', $jsonData);
 
             if (!$response->successful()) {
                 Log::error('EduBraille API error: ' . $response->status());
+                Log::error('Response body: ' . $response->body());
+            } else {
+                Log::info('EduBraille: Berhasil mengirim ' . count($safeChunks) . ' chunks');
             }
         } catch (\Exception $e) {
             Log::error('EduBraille koneksi gagal: ' . $e->getMessage());
+            
+            // Check if device is reachable
+            if (str_contains($e->getMessage(), 'timeout') || str_contains($e->getMessage(), 'Connection')) {
+                Log::error('EduBraille device tidak dapat dijangkau di: ' . $edubrailleUrl);
+                Log::error('Pastikan device EduBraille aktif dan terhubung ke jaringan');
+            }
         }
     }
 }

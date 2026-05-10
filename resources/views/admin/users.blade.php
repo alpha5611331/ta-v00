@@ -84,7 +84,10 @@
 </section>
 
 <p class="text-sm text-slate-600 mb-3" role="status" aria-live="polite" aria-atomic="true">
-    Menampilkan <strong>{{ $users->firstItem() ?? 0 }}–{{ $users->lastItem() ?? 0 }}</strong> dari <strong>{{ $users->total() }}</strong> pengguna@if(request('q')) untuk "<strong>{{ request('q') }}</strong>"@endif
+    Menampilkan <strong>{{ $users->firstItem() ?? 0 }}–{{ $users->lastItem() ?? 0 }}</strong> dari <strong>{{ $users->total() }}</strong> pengguna
+    @if(request('q'))
+        untuk "<strong>{{ request('q') }}</strong>"
+    @endif
 </p>
 
 {{-- Tabel --}}

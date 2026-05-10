@@ -366,8 +366,23 @@
                 <div class="flex-1 border-t border-black/10"></div>
             </div>
 
+            {{-- ── Register Link ── --}}
+            <div class="text-center">
+                <p class="text-sm text-slate-600 mb-2">
+                    Belum punya akun?
+                </p>
+                <a href="{{ route('register') }}" 
+                   class="inline-flex items-center justify-center px-4 py-2 border border-2 border-black bg-white text-black font-medium rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black transition-colors"
+                   aria-label="Daftar akun VOXORA baru">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v-3m0 3h.01M9 16h.01M15 12H9m6 0v.01M12 15h.01M12 9h.01M12 12h.01M12 18h.01M16 12h-4m-4 0v4m0-4h4" />
+                    </svg>
+                    Daftar Sekarang
+                </a>
+            </div>
+
             {{-- ── Info aksesibilitas ── --}}
-            <p class="text-center text-xs text-slate-500 leading-relaxed">
+            <p class="text-center text-xs text-slate-500 leading-relaxed mt-6">
                 Platform ini dirancang ramah screen reader.<br>
                 Gunakan <kbd class="px-1 py-0.5 bg-slate-100 rounded text-slate-700 font-mono">Tab</kbd>
                 untuk navigasi keyboard.

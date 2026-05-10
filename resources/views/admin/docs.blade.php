@@ -114,7 +114,10 @@
 </section>
 
 <p class="text-sm text-slate-600 mb-3" role="status" aria-live="polite" aria-atomic="true">
-    Menampilkan <strong>{{ $docs->firstItem() ?? 0 }}–{{ $docs->lastItem() ?? 0 }}</strong> dari <strong>{{ $docs->total() }}</strong> dokumen@if(request('q')) untuk "<strong>{{ request('q') }}</strong>"@endif
+    Menampilkan <strong>{{ $docs->firstItem() ?? 0 }}–{{ $docs->lastItem() ?? 0 }}</strong> dari <strong>{{ $docs->total() }}</strong> dokumen
+    @if(request('q'))
+        untuk "<strong>{{ request('q') }}</strong>"
+    @endif
 </p>
 
 {{-- Tabel --}}
@@ -202,7 +205,7 @@
                     <tr>
                         <td colspan="5" class="px-5 py-12 text-center text-slate-500 italic">
                             @if(request('q'))
-                                Tidak ada dokumen untuk "<strong class="not-italic text-black">{{ request('q') }}</strong>".
+                                Tidak ada dokumen untuk "<strong class='not-italic text-black'>{{ request('q') }}</strong>".
                             @else
                                 Belum ada dokumen diunggah.
                             @endif

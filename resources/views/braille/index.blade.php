@@ -33,17 +33,6 @@
 <h1 class="font-serif text-3xl font-bold text-black mb-2">Kirim ke EduBraille</h1>
 <p class="text-sm text-slate-600 mb-6">Masukkan teks hasil remediasi, pilih ukuran chunk, lalu kirim ke perangkat EduBraille.</p>
 
-@if(session('success'))
-<div role="alert" aria-live="assertive" aria-atomic="true"
-     class="flex items-start gap-3 rounded-xl px-5 py-4 mb-5 text-sm font-medium
-            bg-green-50 border border-green-700 text-green-900">
-    <svg aria-hidden="true" class="w-5 h-5 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-    </svg>
-    <div><p class="font-bold">Berhasil dikirim!</p><p class="mt-0.5">{{ session('success') }}</p></div>
-</div>
-@endif
-
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
     {{-- FORM --}}
@@ -51,9 +40,6 @@
         <h2 id="form-heading" class="text-lg font-bold text-black mb-4">Pengaturan Pengiriman</h2>
         <form id="braille-form" method="POST" action="{{ route('braille.send') }}" novalidate>
             @csrf
-            @if($document)
-                <input type="hidden" name="document_id" value="{{ $document->id }}">
-            @endif
 
             <div class="mb-5">
                 <label for="result_text" class="block text-sm font-semibold text-black mb-1.5">
@@ -61,7 +47,7 @@
                 </label>
                 <textarea id="result_text" name="result_text" class="preview-area" rows="6"
                     required aria-required="true" aria-describedby="text-hint"
-                    placeholder="Tempel teks hasil remediasi di sini…">{{ old('result_text', $document->remediated_text ?? '') }}</textarea>
+                    placeholder="Tempel teks hasil remediasi di sini…">{{ old('result_text', ($prefillText ?: ($document->remediated_text ?? ''))) }}</textarea>
                 <p id="text-hint" class="mt-1 text-xs text-slate-500">Hanya karakter alfanumerik dan tanda baca dasar yang dikonversi ke braille.</p>
                 @error('result_text')<p role="alert" class="mt-1 text-xs text-red-700 font-medium">{{ $message }}</p>@enderror
             </div>
@@ -73,22 +59,37 @@
                 <select id="chunk_size" name="chunk_size"
                         class="w-full px-4 py-2.5 rounded-xl border-2 bg-white/60 text-sm text-black
                                border-black/15 focus:outline-none focus:border-black focus:ring-2 focus:ring-black/10"
-                        required aria-required="true">
-                    @foreach([['5','5 karakter - Lambat, sangat detail'],['10','10 karakter - Standar kecil'],['20','20 karakter - Standar umum'],['40','40 karakter - Cepat, ringkas']] as [$v,$l])
-                        <option value="{{ $v }}" {{ old('chunk_size','20')===$v ? 'selected' : '' }}>{{ $l }}</option>
+                        required aria-required="true" aria-describedby="chunk-hint">
+                    @foreach([['5','5 karakter'],['10','10 karakter'],['20','20 karakter'],['40','40 karakter']] as [$v,$label])
+                        <option value="{{ $v }}" {{ (string) old('chunk_size', '5') === (string) $v ? 'selected' : '' }}>
+                            {{ $label }}
+                        </option>
                     @endforeach
                 </select>
+                <p id="chunk-hint" class="mt-1 text-xs text-slate-500">Semakin besar chunk, semakin cepat pengiriman tetapi semakin ringkas per potongan.</p>
                 @error('chunk_size')<p role="alert" class="mt-1 text-xs text-red-700 font-medium">{{ $message }}</p>@enderror
             </div>
 
             <div class="mb-5">
-                <label for="device_id" class="block text-sm font-semibold text-black mb-1.5">ID Perangkat EduBraille</label>
-                <input type="text" id="device_id" name="device_id"
-                       class="w-full px-4 py-2.5 rounded-xl border-2 bg-white/60 text-sm text-black
-                              border-black/15 focus:outline-none focus:border-black focus:ring-2 focus:ring-black/10"
-                       placeholder="DEFAULT" value="{{ old('device_id','DEFAULT') }}"
-                       aria-describedby="device-hint">
-                <p id="device-hint" class="mt-1 text-xs text-slate-500">Biarkan DEFAULT jika hanya ada satu perangkat terhubung.</p>
+                <label for="device_id" class="block text-sm font-semibold text-black mb-1.5">
+                    Perangkat EduBraille <span aria-hidden="true" class="text-red-600">*</span>
+                </label>
+                <select id="device_id" name="device_id"
+                        class="w-full px-4 py-2.5 rounded-xl border-2 bg-white/60 text-sm text-black
+                               border-black/15 focus:outline-none focus:border-black focus:ring-2 focus:ring-black/10"
+                        required aria-required="true" aria-describedby="device-hint">
+                    @forelse(($devices ?? []) as $dev)
+                        <option value="{{ $dev->device_id }}" {{ (string) old('device_id', ($devices[0]->device_id ?? '')) === (string) $dev->device_id ? 'selected' : '' }}>
+                            {{ $dev->device_id }}
+                        </option>
+                    @empty
+                        <option value="" selected>Tidak ada perangkat aktif</option>
+                    @endforelse
+                </select>
+                <p id="device-hint" class="mt-1 text-xs text-slate-500">
+                    Daftar perangkat diatur oleh admin pada halaman Manajemen EduBraille.
+                </p>
+                @error('device_id')<p role="alert" class="mt-1 text-xs text-red-700 font-medium">{{ $message }}</p>@enderror
             </div>
 
             <button type="submit" id="send-submit"
@@ -126,17 +127,61 @@
                     <p>{{ $chunkSize ?? '?' }} karakter/chunk{{ isset($sentAt) ? ' · Pukul '.$sentAt : '' }}</p>
                 </div>
             </div>
-            <div class="rounded-2xl border-2 border-black/10 bg-white/40 p-4 max-h-[440px] overflow-y-auto"
-                 style="scrollbar-width:thin;scrollbar-color:var(--bg-header) transparent;"
-                 role="region" aria-label="Daftar {{ count($brailleChunks) }} chunk braille">
-                <div class="flex flex-wrap gap-2" role="list">
-                    @foreach($brailleChunks as $i => $chunk)
-                    <div class="chunk-cell" role="listitem" tabindex="0"
-                         aria-label="Chunk {{ $i+1 }}: {{ $chunk['text'] }}">
-                        <span class="chunk-braille" aria-hidden="true">{{ $chunk['braille'] }}</span>
-                        <span class="chunk-latin"   aria-hidden="true">{{ $chunk['text'] }}</span>
+
+            {{-- Viewer 1-chunk (carousel/page viewer) --}}
+            <div
+                id="chunk-viewer"
+                tabindex="0"
+                role="region"
+                aria-live="polite"
+                aria-atomic="true"
+                aria-label="Pratinjau chunk braille. Gunakan tombol panah kiri dan kanan untuk berpindah chunk."
+                class="rounded-2xl border-2 border-black/10 bg-white/55 backdrop-blur-sm p-5">
+
+                {{-- Status live untuk NVDA (posisi + isi singkat) --}}
+                <p id="chunk-live-status" class="sr-only"></p>
+
+                <div class="flex items-center justify-between gap-3 mb-4">
+                    <p id="chunk-position" class="text-xs font-semibold text-slate-600"
+                       aria-label="Posisi chunk saat ini"></p>
+                    <p class="text-[11px] text-slate-500">
+                        Pintasan: <kbd class="px-1 bg-slate-100 rounded text-[10px] font-mono">←</kbd> /
+                        <kbd class="px-1 bg-slate-100 rounded text-[10px] font-mono">→</kbd>
+                    </p>
+                </div>
+
+                <div class="flex items-center justify-center">
+                    <div class="w-full max-w-md rounded-2xl border-2 border-black bg-white/75 p-6 text-center">
+                        <p id="chunk-braille" class="chunk-braille font-semibold text-black"
+                           style="font-size:2.25rem; line-height:1.2;"
+                           aria-hidden="true"></p>
+                        <p id="chunk-original" class="mt-3 text-sm text-slate-700"
+                           style="font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;"></p>
                     </div>
-                    @endforeach
+                </div>
+
+                <div class="mt-5 flex items-center justify-between gap-3">
+                    <button type="button" id="chunk-prev"
+                            class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold
+                                   border-2 border-black/20 bg-white/70 hover:bg-white focus:outline-none
+                                   focus:ring-4 focus:ring-black focus:ring-offset-2 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                            aria-label="Chunk Sebelumnya">
+                        <svg aria-hidden="true" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+                        </svg>
+                        Chunk Sebelumnya
+                    </button>
+
+                    <button type="button" id="chunk-next"
+                            class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold
+                                   border-2 border-black/20 bg-white/70 hover:bg-white focus:outline-none
+                                   focus:ring-4 focus:ring-black focus:ring-offset-2 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                            aria-label="Chunk Berikutnya">
+                        Chunk Berikutnya
+                        <svg aria-hidden="true" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+                        </svg>
+                    </button>
                 </div>
             </div>
         @else
@@ -166,9 +211,89 @@ document.getElementById('braille-form').addEventListener('submit', function(e) {
     let i=0; const t=setInterval(()=>{ if(i>=steps.length){clearInterval(t);return;} bar.style.width=steps[i].pct+'%'; lbl.textContent=steps[i].msg; if(typeof announce==='function') announce(steps[i].msg); i++; },450);
 });
 window.addEventListener('DOMContentLoaded',()=>{
-    @if(isset($brailleChunks) && count($brailleChunks) > 0)
-    if(typeof announce==='function') announce('{{ count($brailleChunks) }} chunk braille berhasil dikirim. Pratinjau tersedia di kolom kanan.');
-    @endif
+    const hasChunks = {{ (isset($brailleChunks) && count($brailleChunks) > 0) ? 'true' : 'false' }};
+    if (hasChunks && typeof announce === 'function') {
+        announce('{{ count($brailleChunks ?? []) }} chunk braille berhasil dikirim. Gunakan panah kiri dan kanan untuk berpindah chunk.');
+    }
+
+    if (!hasChunks) return;
+
+    // Data chunk dari backend → bentuk JSON
+    const chunks = @json(collect($brailleChunks ?? [])->values()->map(function ($c) {
+        return [
+            'original_text'   => (string) ($c['text'] ?? ''),
+            'braille_unicode' => (string) ($c['braille'] ?? ''),
+        ];
+    })->all());
+
+    const viewer     = document.getElementById('chunk-viewer');
+    const prevBtn    = document.getElementById('chunk-prev');
+    const nextBtn    = document.getElementById('chunk-next');
+    const posEl      = document.getElementById('chunk-position');
+    const brailleEl  = document.getElementById('chunk-braille');
+    const origEl     = document.getElementById('chunk-original');
+    const liveStatus = document.getElementById('chunk-live-status');
+
+    if (!viewer || !prevBtn || !nextBtn || !posEl || !brailleEl || !origEl || !liveStatus) return;
+
+    let currentChunkIndex = 0;
+
+    function clampIndex(i) {
+        const max = Math.max(chunks.length - 1, 0);
+        return Math.min(Math.max(i, 0), max);
+    }
+
+    function renderChunk() {
+        const total = chunks.length;
+        const i = clampIndex(currentChunkIndex);
+        currentChunkIndex = i;
+
+        const chunk = chunks[i] ?? { original_text: '', braille_unicode: '' };
+        const humanPos = i + 1;
+
+        // Visual
+        brailleEl.textContent = chunk.braille_unicode || '—';
+        origEl.textContent = chunk.original_text || '';
+        posEl.textContent = `Chunk ${humanPos} dari ${total}`;
+
+        // Button state
+        prevBtn.disabled = (i <= 0);
+        nextBtn.disabled = (i >= total - 1);
+
+        // Aria update: NVDA akan membaca perubahan karena region aria-live=polite
+        const spoken = `Chunk ${humanPos} dari ${total}. ${chunk.original_text ? 'Teks: ' + chunk.original_text : ''}`;
+        viewer.setAttribute('aria-label', `Pratinjau chunk braille. ${spoken}. Gunakan panah kiri dan kanan untuk berpindah chunk.`);
+        liveStatus.textContent = spoken;
+
+        // Fokus tetap di viewer
+        viewer.focus();
+    }
+
+    function goNext() {
+        if (currentChunkIndex < chunks.length - 1) {
+            currentChunkIndex++;
+            renderChunk();
+        }
+    }
+
+    function goPrev() {
+        if (currentChunkIndex > 0) {
+            currentChunkIndex--;
+            renderChunk();
+        }
+    }
+
+    prevBtn.addEventListener('click', () => goPrev());
+    nextBtn.addEventListener('click', () => goNext());
+
+    // Keyboard navigation (ArrowLeft/ArrowRight) saat fokus di viewer
+    viewer.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowRight') { e.preventDefault(); goNext(); }
+        if (e.key === 'ArrowLeft')  { e.preventDefault(); goPrev(); }
+    });
+
+    // Render awal
+    renderChunk();
 });
 </script>
 @endpush

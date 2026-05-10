@@ -11,7 +11,7 @@
     .result-box::-webkit-scrollbar { width: 7px; }
     .result-box::-webkit-scrollbar-thumb { background: var(--bg-header); border-radius: 4px; }
     .spinner { width:20px;height:20px;border:3px solid rgba(0,0,0,.12);border-top-color:#000;border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle;flex-shrink:0; }
-    @keyframes spin { to { transform:rotate(360deg); } }
+    @@keyframes spin { to { transform:rotate(360deg); } }
     #progress-bar { transition: width .4s ease; }
     .status-banner { display:flex;align-items:flex-start;gap:.75rem;border-radius:.875rem;padding:.875rem 1.125rem;font-size:.875rem;font-weight:500;animation:fadeSlide .35s ease forwards; }
     .status-banner.success { background:#f0fdf4;border:1.5px solid #15803d;color:#14532d; }
@@ -22,16 +22,6 @@
 @section('content')
 
 <h1 class="font-serif text-3xl font-bold text-black mb-6">Unggah Dokumen</h1>
-
-@if(session('success'))
-<div role="alert" aria-live="assertive" aria-atomic="true" class="status-banner success mb-5">
-    <svg aria-hidden="true" class="w-5 h-5 mt-0.5 flex-shrink-0 text-green-700" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
-    <div>
-        <p class="font-bold">Dokumen berhasil diproses!</p>
-        <p class="text-sm mt-0.5">{{ session('success') }} Hasil remediasi tersedia di bawah. Tekan Tab untuk membacanya dengan NVDA.</p>
-    </div>
-</div>
-@endif
 
 @if($errors->any())
 <div role="alert" aria-live="assertive" aria-atomic="true" class="status-banner error mb-5">
@@ -117,6 +107,7 @@
         <form method="POST" action="{{ route('upload.export') }}">
             @csrf
             <input type="hidden" name="result_text" value="{{ $remediationResult ?? '' }}">
+            <input type="hidden" name="document_title" value="{{ $originalFilename ?? 'Dokumen' }}">
             <button type="submit"
                 class="flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm text-white border-2 border-black focus:outline-none focus:ring-4 focus:ring-green-800 focus:ring-offset-2 hover:brightness-90 active:scale-95 transition-all {{ !isset($remediationResult) ? 'opacity-40 cursor-not-allowed' : '' }}"
                 style="background:#15803d;"
@@ -128,54 +119,41 @@
         </form>
 
         {{-- Tanya Dokumen --}}
-        <a href="{{ isset($document) ? route('tanya.show', ['id' => $document->id]) : route('tanya.index') }}"
+        <a href="{{ isset($document) && $document->id ? route('tanya.show', ['id' => $document->id]) : route('tanya.index') }}"
             class="flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm text-white border-2 border-black focus:outline-none focus:ring-4 focus:ring-blue-800 focus:ring-offset-2 hover:brightness-90 active:scale-95 transition-all {{ !isset($remediationResult) ? 'opacity-40 pointer-events-none' : '' }}"
             style="background:#1d4ed8;"
             aria-label="Tanya dokumen ini menggunakan asisten AI VOXORA dengan antarmuka suara"
-            @if(!isset($remediationResult)) aria-disabled="true" @endif>
+            aria-disabled="{{ !isset($remediationResult) ? 'true' : 'false' }}">
             <svg aria-hidden="true" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
             Tanya Dokumen
         </a>
 
-        {{-- Kirim ke EduBraille --}}
-        <div class="flex items-center gap-2">
-            <label for="chunk-size" class="sr-only">Ukuran chunk braille</label>
-            <select id="chunk-size" name="chunk_size" form="braille-form"
-                class="rounded-lg border-2 border-black/20 px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-1"
-                aria-label="Pilih ukuran chunk karakter braille">
-                <option value="5">5 karakter/chunk</option>
-                <option value="20" selected>20 karakter/chunk</option>
-            </select>
-            <form method="POST" action="{{ route('upload.braille') }}" id="braille-form">
-                @csrf
-                <input type="hidden" name="result_text" value="{{ $remediationResult ?? '' }}">
-                <button type="submit"
-                    class="flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm text-white border-2 border-black focus:outline-none focus:ring-4 focus:ring-orange-800 focus:ring-offset-2 hover:brightness-90 active:scale-95 transition-all {{ !isset($remediationResult) ? 'opacity-40 cursor-not-allowed' : '' }}"
-                    style="background:#c2410c;"
-                    aria-label="Kirim hasil remediasi ke perangkat EduBraille"
-                    {{ !isset($remediationResult) ? 'disabled' : '' }}>
-                    <svg aria-hidden="true" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
-                    Kirim ke EduBraille
-                </button>
-            </form>
-        </div>
+        {{-- Kirim ke EduBraille — diarahkan ke laman /braille --}}
+        <form method="POST" action="{{ route('upload.tobraille') }}" id="braille-redirect-form">
+            @csrf
+            <input type="hidden" name="result_text" value="{{ $remediationResult ?? '' }}">
+            <button type="submit"
+                class="flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm
+                       text-white border-2 border-black
+                       focus:outline-none focus:ring-4 focus:ring-orange-800 focus:ring-offset-2
+                       hover:brightness-90 active:scale-95 transition-all
+                       {{ !isset($remediationResult) ? 'opacity-40 cursor-not-allowed' : '' }}"
+                style="background:#c2410c;"
+                aria-label="Buka laman EduBraille untuk mengirim hasil remediasi ke perangkat braille"
+                {{ !isset($remediationResult) ? 'disabled' : '' }}>
+                <svg aria-hidden="true" class="w-4 h-4" fill="none" viewBox="0 0 24 24"
+                     stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                          d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863
+                          9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3
+                          12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                </svg>
+                Kirim ke EduBraille
+            </button>
+        </form>
 
     </div>
 </section>
-
-@if(isset($brailleChunks))
-<section aria-labelledby="braille-result-heading" class="mt-6">
-    <h2 id="braille-result-heading" class="text-base font-bold text-black mb-3">Pratinjau Braille</h2>
-    <div class="rounded-2xl border-2 border-black bg-white/70 p-5">
-        <div class="flex flex-wrap gap-2" role="list" aria-label="Daftar chunk braille">
-            @foreach($brailleChunks as $i => $chunk)
-            <span role="listitem" class="font-mono text-xs rounded-lg px-2 py-1" style="background:var(--bg-main);border:1px solid var(--bg-header);" aria-label="Chunk {{ $i+1 }}: {{ $chunk['text'] }}">{{ $chunk['braille'] }}</span>
-            @endforeach
-        </div>
-        <p class="mt-3 text-sm text-green-800 font-semibold" role="status" aria-live="assertive">✓ {{ count($brailleChunks) }} chunk berhasil dikirim ke EduBraille.</p>
-    </div>
-</section>
-@endif
 
 @endsection
 
@@ -231,10 +209,11 @@ document.getElementById('upload-form').addEventListener('submit', function(e) {
     const tick=setInterval(()=>{ if(i>=steps.length){clearInterval(tick);return;} bar.style.width=steps[i].pct+'%'; label.textContent=steps[i].msg; container.setAttribute('aria-valuenow',steps[i].pct); announceUpload(steps[i].msg); i++; },700);
 });
 window.addEventListener('DOMContentLoaded',()=>{
-    @if(isset($remediationResult) && $remediationResult)
-    const box=document.getElementById('result-box');
-    setTimeout(()=>{ box.focus(); announceUpload('Remediasi selesai. Hasil dokumen sudah tersedia dan siap dibaca. Anda sekarang berada di area hasil remediasi.'); },400);
-    @endif
+    const hasResult = {{ (isset($remediationResult) && $remediationResult) ? 'true' : 'false' }};
+    if (hasResult) {
+        const box=document.getElementById('result-box');
+        setTimeout(()=>{ box.focus(); announceUpload('Remediasi selesai. Hasil dokumen sudah tersedia dan siap dibaca. Anda sekarang berada di area hasil remediasi.'); },400);
+    }
 });
 </script>
 @endpush

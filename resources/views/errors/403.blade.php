@@ -70,7 +70,7 @@
 
             @auth
                 <p class="text-slate-500 text-sm mb-8 max-w-sm mx-auto">
-                    Anda masuk sebagai <strong class="text-black">{{ Auth::user()->name }}</strong>.
+                    Anda masuk sebagai <strong class="text-black">{{ auth()->user()?->name }}</strong>.
                     Jika Anda merasa ini adalah kesalahan, hubungi administrator.
                 </p>
             @else

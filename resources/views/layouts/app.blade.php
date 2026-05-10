@@ -222,11 +222,11 @@
         style="background: var(--bg-header);">
 
         {{-- ── Logo / Brand ── --}}
+        {{-- Admin → /admin, User → /upload --}}
         <a
-            href="{{ route('upload.index') }}"
+            href="{{ auth()->user()?->is_admin ? route('admin.index') : route('upload.index') }}"
             class="group flex items-center gap-2 rounded-md"
             aria-label="VOXORA – kembali ke halaman utama">
-            {{-- Ikon aksesibilitas kecil --}}
             <span
                 aria-hidden="true"
                 class="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold text-sm"
@@ -240,10 +240,24 @@
 
         {{-- ── User area ── --}}
         <div class="relative flex items-center gap-3">
+
+            {{-- Badge role admin --}}
+            @if(auth()->user()?->is_admin)
+            <span class="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full
+                         text-[10px] font-bold uppercase tracking-wider text-white"
+                  style="background:#000;"
+                  aria-label="Role: Administrator">
+                <svg aria-hidden="true" class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                </svg>
+                Admin
+            </span>
+            @endif
+
             <span
                 class="text-sm font-semibold text-black hidden sm:inline"
                 aria-hidden="true">
-                {{ Auth::user()->name ?? 'Nama User' }}
+                {{ auth()->user()?->name ?? 'Nama User' }}
             </span>
 
             {{-- Tombol profil --}}
@@ -253,11 +267,11 @@
                 aria-haspopup="true"
                 aria-expanded="false"
                 aria-controls="profile-dropdown"
-                aria-label="Menu profil untuk {{ Auth::user()->name ?? 'Nama User' }}"
+                aria-label="Menu profil untuk {{ auth()->user()?->name ?? 'Nama User' }}"
                 class="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm
                        transition-opacity hover:opacity-90"
                 style="background: var(--text-main);">
-                {{ strtoupper(substr(Auth::user()->name ?? 'U', 0, 1)) }}
+                {{ strtoupper(substr(auth()->user()?->name ?? 'U', 0, 1)) }}
             </button>
 
             {{-- Dropdown profil --}}
@@ -265,19 +279,22 @@
                 id="profile-dropdown"
                 role="menu"
                 aria-label="Opsi profil pengguna"
-                class="hidden absolute right-0 top-12 w-48 rounded-xl shadow-xl border border-black/10 overflow-hidden z-50"
+                class="hidden absolute right-0 top-12 w-52 rounded-xl shadow-xl border border-black/10 overflow-hidden z-50"
                 style="background: var(--bg-main);">
 
                 <div class="px-4 py-3 border-b border-black/10">
-                    <p class="text-xs text-slate-600">Masuk sebagai</p>
+                    <p class="text-xs text-slate-500">Masuk sebagai</p>
                     <p class="text-sm font-semibold text-black truncate">
-                        {{ Auth::user()->name ?? 'Nama User' }}
+                        {{ auth()->user()?->name ?? 'Nama User' }}
+                    </p>
+                    <p class="text-[10px] text-slate-400 mt-0.5">
+                        {{ auth()->user()?->is_admin ? 'Administrator' : 'Pengguna' }}
                     </p>
                 </div>
 
                 <a
                     role="menuitem"
-                    href="{{ route('profile.show') }}"
+                    href="{{ auth()->user()?->is_admin ? route('admin.profile') : route('profile.show') }}"
                     class="flex items-center gap-2 px-4 py-3 text-sm text-black hover:bg-sky-200 transition-colors">
                     <svg aria-hidden="true" focusable="false" class="w-4 h-4 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
@@ -306,115 +323,111 @@
     ════════════════════════════════════════════ --}}
     <div class="flex flex-1 overflow-hidden">
 
-        {{-- ──────────────────────────────────────
-             SIDEBAR  – role="navigation" (Landmark)
-        ────────────────────────────────────────── --}}
+        {{-- ══════════════════════════════════════════════════════════
+             SIDEBAR — tampilan berbeda untuk ADMIN vs USER
+        ══════════════════════════════════════════════════════════ --}}
+        @if(auth()->user()?->is_admin)
+
+        {{-- ─────────────────────────────
+             SIDEBAR ADMIN
+        ───────────────────────────── --}}
         <nav
             id="sidebar"
             role="navigation"
-            aria-label="Navigasi halaman utama VOXORA"
+            aria-label="Navigasi panel administrator VOXORA"
             class="w-56 flex-shrink-0 flex flex-col py-5 gap-0.5 overflow-y-auto"
             style="background: var(--bg-sidebar);">
 
-            {{-- Hanya dibaca screen reader, tidak terlihat secara visual --}}
-            <h2 class="sr-only">Menu Navigasi VOXORA</h2>
+            <h2 class="sr-only">Menu Administrator VOXORA</h2>
 
-            {{-- ══════════════════════════
-                 GRUP: DOKUMEN
-            ══════════════════════════ --}}
+            {{-- ── GRUP: MANAJEMEN ── --}}
             <p class="px-5 pb-1.5 pt-2 text-[10px] font-bold uppercase tracking-widest
-                       text-slate-500 select-none"
-               aria-hidden="true">
-                Dokumen
+                       text-slate-500 select-none" aria-hidden="true">
+                Manajemen
             </p>
 
-            {{-- Unggah Dokumen --}}
-            <a href="{{ route('upload.index') }}"
-               class="nav-link {{ request()->routeIs('upload.*') ? 'active' : '' }}"
-               aria-label="Unggah Dokumen"
-               @if(request()->routeIs('upload.*')) aria-current="page" @endif>
+            {{-- Dashboard Admin --}}
+            <a href="{{ route('admin.index') }}"
+               class="nav-link {{ request()->routeIs('admin.index') ? 'active' : '' }}"
+               aria-label="Dashboard – ringkasan statistik platform"
+               @if(request()->routeIs('admin.index')) aria-current="page" @endif
                 <svg aria-hidden="true" focusable="false" class="w-5 h-5 flex-shrink-0"
                      fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round"
-                          d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                          d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1
+                          0 01-1-1V5zm10 0a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1
+                          1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1
+                          1 0 01-1 1H5a1 1 0 01-1-1v-4zm10 0a1 1 0 011-1h4a1 1 0
+                          011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"/>
                 </svg>
-                Unggah Dokumen
+                Dashboard
             </a>
 
-            {{-- Pustaka --}}
-            <a href="{{ route('pustaka.index') }}"
-               class="nav-link {{ request()->routeIs('pustaka.*') ? 'active' : '' }}"
-               aria-label="Pustaka – riwayat dokumen yang telah diunggah"
-               @if(request()->routeIs('pustaka.*')) aria-current="page" @endif>
+            {{-- Kelola Pengguna --}}
+            <a href="{{ route('admin.users') }}"
+               class="nav-link {{ request()->routeIs('admin.users') ? 'active' : '' }}"
+               aria-label="Kelola Pengguna – daftar dan hapus akun pengguna"
+               @if(request()->routeIs('admin.users')) aria-current="page" @endif
                 <svg aria-hidden="true" focusable="false" class="w-5 h-5 flex-shrink-0"
                      fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round"
-                          d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5
-                          5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5
-                          18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5
-                          16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477
-                          18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                          d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0
+                          0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
                 </svg>
-                Pustaka
+                Kelola Pengguna
+            </a>
+
+            {{-- Kelola Dokumen --}}
+            <a href="{{ route('admin.docs') }}"
+               class="nav-link {{ request()->routeIs('admin.docs') ? 'active' : '' }}"
+               aria-label="Kelola Dokumen – pantau semua dokumen yang diunggah"
+               @if(request()->routeIs('admin.docs')) aria-current="page" @endif
+                <svg aria-hidden="true" focusable="false" class="w-5 h-5 flex-shrink-0"
+                     fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586
+                          a1 1 0 01.707.293l5.414 5.414A1 1 0 0119 9.414V19a2 2 0
+                          01-2 2z"/>
+                </svg>
+                Kelola Dokumen
             </a>
 
             {{-- ── Divider ── --}}
             <div class="mx-5 my-3 border-t border-black/10" aria-hidden="true"></div>
 
-            {{-- ══════════════════════════
-                 GRUP: ASISTEN
-            ══════════════════════════ --}}
+            {{-- ── GRUP: PERANGKAT ── --}}
             <p class="px-5 pb-1.5 text-[10px] font-bold uppercase tracking-widest
-                       text-slate-500 select-none"
-               aria-hidden="true">
-                Asisten
+                       text-slate-500 select-none" aria-hidden="true">
+                Perangkat
             </p>
 
-            {{-- Tanya Bot --}}
-            <a href="{{ route('tanya.index') }}"
-               class="nav-link {{ request()->routeIs('tanya.*') ? 'active' : '' }}"
-               aria-label="Tanya Bot – tanya jawab dokumen dengan asisten AI bersuara"
-               @if(request()->routeIs('tanya.*')) aria-current="page" @endif>
+            {{-- Manajemen EduBraille --}}
+            <a href="{{ route('admin.edubraille') }}"
+               class="nav-link {{ request()->routeIs('admin.edubraille') ? 'active' : '' }}"
+               aria-label="Manajemen EduBraille – kelola endpoint dan perangkat braille"
+               @if(request()->routeIs('admin.edubraille')) aria-current="page" @endif
                 <svg aria-hidden="true" focusable="false" class="w-5 h-5 flex-shrink-0"
                      fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round"
-                          d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6
-                          a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
+                          d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0
+                          0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/>
                 </svg>
-                Tanya Bot
-            </a>
-
-            {{-- EduBraille --}}
-            <a href="{{ route('braille.index') }}"
-               class="nav-link {{ request()->routeIs('braille.*') ? 'active' : '' }}"
-               aria-label="EduBraille – kirim dokumen ke perangkat braille"
-               @if(request()->routeIs('braille.*')) aria-current="page" @endif>
-                <svg aria-hidden="true" focusable="false" class="w-5 h-5 flex-shrink-0"
-                     fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round"
-                          d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18
-                          m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/>
-                </svg>
-                EduBraille
+                Manajemen EduBraille
             </a>
 
             {{-- ── Divider ── --}}
             <div class="mx-5 my-3 border-t border-black/10" aria-hidden="true"></div>
 
-            {{-- ══════════════════════════
-                 GRUP: AKUN
-            ══════════════════════════ --}}
+            {{-- ── GRUP: AKUN ── --}}
             <p class="px-5 pb-1.5 text-[10px] font-bold uppercase tracking-widest
-                       text-slate-500 select-none"
-               aria-hidden="true">
+                       text-slate-500 select-none" aria-hidden="true">
                 Akun
             </p>
 
-            {{-- Profil --}}
-            <a href="{{ route('profile.show') }}"
-               class="nav-link {{ request()->routeIs('profile.*') ? 'active' : '' }}"
-               aria-label="Profil – kelola informasi akun Anda"
-               @if(request()->routeIs('profile.*')) aria-current="page" @endif>
+            <a href="{{ route('admin.profile') }}"
+               class="nav-link {{ request()->routeIs('admin.profile') ? 'active' : '' }}"
+               aria-label="Profil – kelola informasi akun administrator"
+               @if(request()->routeIs('admin.profile')) aria-current="page" @endif
                 <svg aria-hidden="true" focusable="false" class="w-5 h-5 flex-shrink-0"
                      fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round"
@@ -424,45 +437,142 @@
                 Profil
             </a>
 
-            {{-- Admin (hanya tampil jika user adalah admin) --}}
-            @if(Auth::user()?->is_admin)
-            <a href="{{ route('admin.index') }}"
-               class="nav-link {{ request()->routeIs('admin.*') ? 'active' : '' }}"
-               aria-label="Dashboard Admin – kelola pengguna dan dokumen platform"
-               @if(request()->routeIs('admin.*')) aria-current="page" @endif>
-                <svg aria-hidden="true" focusable="false" class="w-5 h-5 flex-shrink-0"
-                     fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round"
-                          d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724
-                          1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724
-                          1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724
-                          1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724
-                          1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724
-                          1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724
-                          1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724
-                          1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608
-                          2.296.07 2.572-1.065z"/>
-                    <path stroke-linecap="round" stroke-linejoin="round"
-                          d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                </svg>
-                Admin
-            </a>
-            @endif
-
-            {{-- ── Info versi di bawah ── --}}
+            {{-- Info versi --}}
             <div class="mt-auto px-5 pt-4 pb-2">
                 <div class="flex items-center gap-2 mb-1">
                     <div class="w-2 h-2 rounded-full bg-green-500" aria-hidden="true"></div>
-                    <p class="text-[10px] text-slate-500 font-medium">
-                        {{ Auth::user()->name ?? '' }}
+                    <p class="text-[10px] text-slate-500 font-medium truncate">
+                        {{ auth()->user()?->name ?? '' }}
                     </p>
                 </div>
-                <p class="text-[10px] text-slate-400 leading-relaxed">
+                <p class="text-[10px] text-slate-400">
+                    VOXORA v1.0 &mdash; Panel Admin
+                </p>
+            </div>
+
+        </nav>
+
+        @else
+
+        {{-- ─────────────────────────────
+             SIDEBAR USER BIASA
+        ───────────────────────────── --}}
+        <nav
+            id="sidebar"
+            role="navigation"
+            aria-label="Navigasi halaman utama VOXORA"
+            class="w-56 flex-shrink-0 flex flex-col py-5 gap-0.5 overflow-y-auto"
+            style="background: var(--bg-sidebar);">
+
+            <h2 class="sr-only">Menu Navigasi VOXORA</h2>
+
+            {{-- ── GRUP: DOKUMEN ── --}}
+            <p class="px-5 pb-1.5 pt-2 text-[10px] font-bold uppercase tracking-widest
+                       text-slate-500 select-none" aria-hidden="true">
+                Dokumen
+            </p>
+
+            <a href="{{ route('upload.index') }}"
+               class="nav-link {{ request()->routeIs('upload.*') ? 'active' : '' }}"
+               aria-label="Unggah Dokumen – upload file PDF atau DOCX untuk diremediasi"
+               @if(request()->routeIs('upload.*')) aria-current="page" @endif
+                <svg aria-hidden="true" focusable="false" class="w-5 h-5 flex-shrink-0"
+                     fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                          d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                </svg>
+                Unggah Dokumen
+            </a>
+
+            <a href="{{ route('pustaka.index') }}"
+               class="nav-link {{ request()->routeIs('pustaka.*') ? 'active' : '' }}"
+               aria-label="Pustaka – riwayat dokumen yang telah diunggah dan diremediasi"
+               @if(request()->routeIs('pustaka.*')) aria-current="page" @endif
+                <svg aria-hidden="true" focusable="false" class="w-5 h-5 flex-shrink-0"
+                     fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                          d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168
+                          5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477
+                          4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0
+                          3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5
+                          18c-1.746 0-3.332.477-4.5 1.253"/>
+                </svg>
+                Pustaka
+            </a>
+
+            {{-- ── Divider ── --}}
+            <div class="mx-5 my-3 border-t border-black/10" aria-hidden="true"></div>
+
+            {{-- ── GRUP: ASISTEN ── --}}
+            <p class="px-5 pb-1.5 text-[10px] font-bold uppercase tracking-widest
+                       text-slate-500 select-none" aria-hidden="true">
+                Asisten
+            </p>
+
+            <a href="{{ route('tanya.index') }}"
+               class="nav-link {{ request()->routeIs('tanya.*') ? 'active' : '' }}"
+               aria-label="Tanya Bot – tanya jawab dokumen dengan asisten AI bersuara"
+               @if(request()->routeIs('tanya.*')) aria-current="page" @endif
+                <svg aria-hidden="true" focusable="false" class="w-5 h-5 flex-shrink-0"
+                     fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                          d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6
+                          a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
+                </svg>
+                Tanya Bot
+            </a>
+
+            <a href="{{ route('braille.index') }}"
+               class="nav-link {{ request()->routeIs('braille.*') ? 'active' : '' }}"
+               aria-label="Kirim ke EduBraille – kirim hasil remediasi ke perangkat braille"
+               @if(request()->routeIs('braille.*')) aria-current="page" @endif
+                <svg aria-hidden="true" focusable="false" class="w-5 h-5 flex-shrink-0"
+                     fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                          d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0
+                          0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/>
+                </svg>
+                Kirim ke EduBraille
+            </a>
+
+            {{-- ── Divider ── --}}
+            <div class="mx-5 my-3 border-t border-black/10" aria-hidden="true"></div>
+
+            {{-- ── GRUP: AKUN ── --}}
+            <p class="px-5 pb-1.5 text-[10px] font-bold uppercase tracking-widest
+                       text-slate-500 select-none" aria-hidden="true">
+                Akun
+            </p>
+
+            <a href="{{ route('profile.show') }}"
+               class="nav-link {{ request()->routeIs('profile.*') ? 'active' : '' }}"
+               aria-label="Profil – kelola informasi akun Anda"
+               @if(request()->routeIs('profile.*')) aria-current="page" @endif
+                <svg aria-hidden="true" focusable="false" class="w-5 h-5 flex-shrink-0"
+                     fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                          d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0
+                          00-7 7h14a7 7 0 00-7-7z"/>
+                </svg>
+                Profil
+            </a>
+
+            {{-- Info versi --}}
+            <div class="mt-auto px-5 pt-4 pb-2">
+                <div class="flex items-center gap-2 mb-1">
+                    <div class="w-2 h-2 rounded-full bg-green-500" aria-hidden="true"></div>
+                    <p class="text-[10px] text-slate-500 font-medium truncate">
+                        {{ auth()->user()?->name ?? '' }}
+                    </p>
+                </div>
+                <p class="text-[10px] text-slate-400">
                     VOXORA v1.0 &mdash; Aksesibilitas Dokumen
                 </p>
             </div>
 
         </nav>
+
+        @endif
 
         {{-- ──────────────────────────────────────
              MAIN CONTENT  – role="main" (Landmark)

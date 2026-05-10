@@ -15,11 +15,22 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
+        // Create default admin user
+        User::create([
+            'name' => 'Admin',
+            'email' => 'admin@voxora.local',
+            'password' => bcrypt('admin123'),
+            'is_admin' => true,
+            'is_active' => true,
+        ]);
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+        // Create default regular user
+        User::create([
+            'name' => 'User',
+            'email' => 'user@voxora.local',
+            'password' => bcrypt('user123'),
+            'is_admin' => false,
+            'is_active' => true,
         ]);
     }
 }
