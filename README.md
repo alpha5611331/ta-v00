@@ -178,6 +178,15 @@ ta-v00/
 
 ---
 
+## 📄 Documentation
+
+| Document | Language | Description |
+|---|---|---|
+| [WORKFLOW.md](WORKFLOW.md) | 🇮🇩 Indonesian | Alur eksekusi sistem VOXORA (untuk tesis) |
+| [WORKFLOW.en.md](WORKFLOW.en.md) | 🇬🇧 English | VOXORA system execution workflow (for thesis) |
+
+---
+
 ## 🎯 Panduan Penggunaan
 
 ### Akun Default
