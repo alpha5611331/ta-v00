@@ -32,12 +32,12 @@ User Uploads Document
 
 ### 1. Authentication
 
-| Step           | Route              | Description                                                                    |
-| -------------- | ------------------ | ------------------------------------------------------------------------------ |
-| Open app       | `GET /`          | If logged in → redirect to `/upload`; otherwise → welcome page               |
-| Register       | `POST /register` | Create new account, auto-login, redirect to `/upload`                        |
-| Login          | `POST /login`    | Verify credentials; admin → `/admin`, regular user → `/upload`             |
-| Logout         | `POST /logout`   | Destroy session, redirect to home page                                         |
+| Step     | Route              | Description                                                         |
+| -------- | ------------------ | ------------------------------------------------------------------- |
+| Open app | `GET /`          | If logged in → redirect to `/upload`; otherwise → welcome page  |
+| Register | `POST /register` | Create new account, auto-login, redirect to `/upload`             |
+| Login    | `POST /login`    | Verify credentials; admin →`/admin`, regular user → `/upload` |
+| Logout   | `POST /logout`   | Destroy session, redirect to home page                              |
 
 ---
 
@@ -161,27 +161,27 @@ Route: `POST /braille/send` → `BrailleController@send`
 
 Route: `/admin/*` — protected by `app.admin` middleware
 
-| Page                  | Function                                                                     |
-| --------------------- | ---------------------------------------------------------------------------- |
-| `/admin`            | Statistics dashboard (user count, documents, questions, Braille deliveries)  |
-| `/admin/users`      | List all users, delete user                                                   |
-| `/admin/docs`       | List all documents from all users                                             |
-| `/admin/edubraille` | Manage EduBraille devices (add, activate, test connection, send)              |
+| Page                  | Function                                                                    |
+| --------------------- | --------------------------------------------------------------------------- |
+| `/admin`            | Statistics dashboard (user count, documents, questions, Braille deliveries) |
+| `/admin/users`      | List all users, delete user                                                 |
+| `/admin/docs`       | List all documents from all users                                           |
+| `/admin/edubraille` | Manage EduBraille devices (add, activate, test connection, send)            |
 
 ---
 
 ## Core Technical Components
 
-| Component           | Technology                                   | Description                                             |
-| ------------------- | -------------------------------------------- | ------------------------------------------------------- |
-| Framework           | Laravel 13 (PHP 8.4)                         | Backend MVC                                             |
-| Database            | SQLite (default)                             | All data: documents, questions, Braille deliveries      |
-| Frontend            | Blade + TailwindCSS 4.0                      | Server-side rendering, no JS framework                  |
-| AI Remediation      | OpenAI GPT-4o (vision) / GPT-4o-mini (text) | Converts STEM symbols to Indonesian natural language    |
-| PDF Processing      | Ghostscript (rasterization) + pdftotext      | Text extraction / page rendering                        |
-| DOCX Processing     | ZipArchive + DOMXPath + phpoffice/phpword    | Text & OMML equation extraction                         |
-| Braille Conversion  | Unicode Braille Grade 1 character mapping    | Built-in, no external library required                  |
-| Queue/Cache/Session | Laravel database driver                      | No Redis, Memcached, or external broker needed          |
+| Component           | Technology                                  | Description                                          |
+| ------------------- | ------------------------------------------- | ---------------------------------------------------- |
+| Framework           | Laravel 13 (PHP 8.4)                        | Backend MVC                                          |
+| Database            | SQLite (default)                            | All data: documents, questions, Braille deliveries   |
+| Frontend            | Blade + TailwindCSS 4.0                     | Server-side rendering, no JS framework               |
+| AI Remediation      | OpenAI GPT-4o (vision) / GPT-4o-mini (text) | Converts STEM symbols to Indonesian natural language |
+| PDF Processing      | Ghostscript (rasterization) + pdftotext     | Text extraction / page rendering                     |
+| DOCX Processing     | ZipArchive + DOMXPath + phpoffice/phpword   | Text & OMML equation extraction                      |
+| Braille Conversion  | Unicode Braille Grade 1 character mapping   | Built-in, no external library required               |
+| Queue/Cache/Session | Laravel database driver                     | No Redis, Memcached, or external broker needed       |
 
 ---
 
@@ -191,13 +191,13 @@ Route: `/admin/*` — protected by `app.admin` middleware
 PDF / DOCX
     │
     ▼
-[Extraction] ──────────────────────────────────────────────────────────┐
+[Extraction] ───────────────────────────────────────────────────────────┐
     │ raw text + [EQUATION: ...]                                        │
     ▼                                                                   │ PDF with image-equations
 [Sanitization] ──→ strip noise (headers, footers, blank lines)          │
     │                                                                   │
     ▼                                                                   ▼
-[GPT-4o-mini] ─────────────────────────────────────── [GPT-4o Vision per page]
+[GPT-4o-mini] ─────────────────────────────────────────── [GPT-4o Vision per page]
     │ STEM text narration in Indonesian
     ▼
 [Database: documents.remediated_text]
