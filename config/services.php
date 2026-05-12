@@ -41,10 +41,10 @@ return [
     ],
 
     'openai' => [
-        'api_key'           => env('OPENAI_API_KEY'),
-        'endpoint'          => env('OPENAI_API_URL', 'https://api.openai.com/v1/chat/completions'),
-        'model_remediation' => env('OPENAI_MODEL_REMEDIATION', 'gpt-4o'),
-        'model_qa'          => env('OPENAI_MODEL_QA', 'gpt-4o-mini'),
+        'api_key'    => env('OPENAI_API_KEY'),
+        'endpoint'   => env('OPENAI_API_URL', 'https://api.openai.com/v1/chat/completions'),
+        'model_vision' => env('OPENAI_MODEL_VISION', 'gpt-5.4'),
+        'model_text'   => env('OPENAI_MODEL_TEXT', 'gpt-5.4-mini'),
     ],
 
     'slack' => [
