@@ -69,7 +69,7 @@ PROMPT;
                 ->post(config('services.openai.endpoint', 'https://api.openai.com/v1/chat/completions'), [
                     'model'       => config('services.openai.model_qa', 'gpt-4o-mini'),
                     'temperature' => 0.4,
-                    'max_tokens'  => 600,
+                    'max_completion_tokens' => 600,
                     'messages'    => [
                         ['role' => 'system', 'content' => $systemPrompt],
                         ...$messages,
