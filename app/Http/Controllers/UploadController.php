@@ -860,6 +860,7 @@ INSTRUKSI:
 - Teks prosa, heading, nomor bagian, dan semua teks non-matematika: pertahankan PERSIS seperti aslinya.
 - Persamaan berdiri sendiri diakhiri tanda titik (.).
 - JANGAN lewati atau abaikan satu pun ekspresi matematika.
+- Dalam narasi, gunakan DIGIT untuk semua angka: tulis "6 x kuadrat", bukan "enam x kuadrat". Hanya nama simbol (sigma, pi, alfa, dll.) yang dieja sebagai kata.
 
 ═══ KONVENSI MATEMATIKA ═══
 
@@ -867,9 +868,15 @@ EKSPONEN:
 - x² → "x kuadrat"
 - x³ → "x kubik"
 - xⁿ → "x pangkat n"
-- 10⁻³ → "sepuluh pangkat negatif tiga"
+- 10⁻³ → "10 pangkat negatif 3"
 - eˣ → "e pangkat x"
 - x^{2} atau x^2 (LaTeX) → "x kuadrat"
+- 6x^2 → "6 x kuadrat"
+KRITIS — Artefak DOCX: Saat diekstrak dari Word, eksponen superscript sering kehilangan format dan menempel sebagai digit biasa. Angka yang langsung mengikuti variabel tanpa spasi dalam konteks matematika SERING merupakan eksponen yang hilang format:
+- "6x2" dalam ekspresi matematika → "6 x kuadrat"
+- "3x3" dalam ekspresi matematika → "3 x kubik"
+- "ax2 + bx + c" → "a x kuadrat ditambah b x ditambah c"
+Gunakan konteks kalimat untuk membedakan eksponen dari perkalian biasa.
 
 AKAR:
 - √x → "akar kuadrat dari x"
@@ -880,11 +887,14 @@ AKAR:
 - \sqrt[n]{x} (LaTeX) → "akar pangkat n dari x"
 
 PECAHAN:
-- a/b (sederhana) → "a per b"
-- (a+b)/(c-d) → "a tambah b, per, c kurang d"
-- 1/(√(2π) σ) → "satu per, akar kuadrat dari dua pi, dikali sigma"
+- a/b (satu suku pembilang dan penyebut) → "a per b"
 - \frac{a}{b} (LaTeX) → "a per b"
 - \frac{df}{dx} → "d f per d x"
+ATURAN "DALAM KURUNG": Jika pembilang atau penyebut mengandung lebih dari satu suku (ada +, −, atau perkalian kompleks), tambahkan "dalam kurung" agar makna tidak ambigu. Tanpa "dalam kurung", arti pecahan bisa berubah total:
+- 3/(x+3) → "3 per, dalam kurung, x ditambah 3"
+- (2x+1)/(y-5) → "dalam kurung, 2 x ditambah 1, per, dalam kurung, y dikurangi 5"
+- 1/(√(2π) σ) → "1 per, dalam kurung, akar kuadrat dari 2 pi, dikali sigma"
+- (a+b)/(c-d) → "dalam kurung, a ditambah b, per, dalam kurung, c dikurangi d"
 
 OPERASI DASAR:
 - + → "ditambah"
@@ -927,8 +937,8 @@ KALKULUS:
 
 HIMPUNAN DAN LOGIKA:
 - ∞ → "tak hingga"
-- ∈ → "anggota"
-- ∉ → "bukan anggota"
+- ∈ → "anggota dari"
+- ∉ → "bukan anggota dari"
 - ⊂ → "himpunan bagian dari"
 - ∪ → "gabungan"
 - ∩ → "irisan"
@@ -938,6 +948,9 @@ HIMPUNAN DAN LOGIKA:
 - ⇒ → "mengakibatkan"
 - ⟺ → "jika dan hanya jika"
 - ¬ → "bukan"
+- {a, b, c} → "himpunan yang berisi a, b, dan c"
+- {x | kondisi} atau {x : kondisi} → "himpunan x sedemikian sehingga kondisi"
+PENTING: JANGAN gunakan deskripsi visual seperti "kurung kurawal buka/tutup" — tunanetra tidak memerlukan deskripsi bentuk simbol, gunakan makna semantiknya.
 
 HURUF YUNANI:
 - α→alfa, β→beta, γ→gamma, δ→delta, ε→epsilon, ζ→zeta, η→eta
@@ -976,9 +989,9 @@ NOTASI LAINNYA:
 - \binom{n}{k} → "n pilih k"
 - P(A) → "peluang kejadian A"
 - P(A|B) → "peluang A diketahui B"
-- \left( ... \right) → "kurung buka ... kurung tutup"
-- \left[ ... \right] → "kurung siku buka ... kurung siku tutup"
-- \left\{ ... \right\} → "kurung kurawal buka ... kurung kurawal tutup"
+- \left( ... \right) → baca isi langsung; sebut "dalam kurung, ..." hanya jika perlu kejelasan makna (misal: pecahan kompleks)
+- \left[ ... \right] → baca isi langsung; sebut "dalam kurung siku, ..." hanya jika perlu
+- \left\{ ... \right\} → baca sebagai himpunan (lihat aturan HIMPUNAN DAN LOGIKA di atas)
 - ⌈x⌉ → "x dibulatkan ke atas" (fungsi ceiling/langit-langit)
 - ⌊x⌋ → "x dibulatkan ke bawah" (fungsi floor/lantai)
 - ⌈3σ⌉ → "tiga sigma dibulatkan ke atas"
@@ -988,10 +1001,24 @@ NOTASI LAINNYA:
 - Θ(f(n)) → "Theta dari f dari n"
 
 ANGKA DESIMAL:
-Titik desimal dalam angka SELALU dibaca "koma":
-- 2.71828 → "dua koma tujuh satu delapan dua delapan"
-- 0.85 → "nol koma delapan lima"
-- 99.7% → "sembilan puluh sembilan koma tujuh persen"
+Titik desimal dalam angka SELALU dibaca "koma". Digit tetap dibaca sebagai digit, bukan dieja:
+- 2.71828 → "2 koma 7 1 8 2 8"
+- 0.85 → "0 koma 8 5"
+- 99.7% → "99 koma 7 persen"
+Angka bulat di luar ekspresi matematika WAJIB tetap sebagai digit: tulis "50", bukan "lima puluh".
+
+SATUAN DAN SIMBOL KHUSUS:
+- ° → "derajat"
+- °C → "derajat Celsius"
+- °F → "derajat Fahrenheit"
+- 10°C → "10 derajat Celsius"
+- −5°C atau -5°C → "negatif 5 derajat Celsius"
+PENTING — Tanda hubung vs tanda minus:
+- Tanda minus matematika (−, -) di depan angka dalam ekspresi → "negatif"
+- Tanda hubung (–, —) antara dua angka sebagai rentang → "sampai"
+- "10–20°C" → "10 sampai 20 derajat Celsius"
+- "x = -7" → "x sama dengan negatif 7"
+Jangan konfusikan tanda hubung/pisah antar angka dengan tanda negatif matematis.
 
 ═══ TANDA [PERSAMAAN: ...] ═══
 
@@ -1009,10 +1036,19 @@ persamaan, persamaan itu HARUS dinarasikan secara lengkap dalam output.
 ═══ CONTOH ═══
 
 Input: G(x, y)=1/(2πσ^2) e^(-(x^2+y^2)/(2σ^2))
-Output: G dari x koma y sama dengan, satu per dua kali pi kali sigma kuadrat, dikali e pangkat negatif, x kuadrat ditambah y kuadrat, per dua sigma kuadrat.
+Output: G dari x koma y sama dengan, 1 per, dalam kurung, 2 pi kali sigma kuadrat, dikali e pangkat negatif, dalam kurung, x kuadrat ditambah y kuadrat, per 2 sigma kuadrat.
 
 Input: [PERSAMAAN: G(x,y)=1/(2πσ2)e-(x2+y2)/(2σ2)]
-Output: G dari x koma y sama dengan, satu per dua kali pi kali sigma kuadrat, dikali e pangkat negatif, x kuadrat ditambah y kuadrat, per dua sigma kuadrat.
+Output: G dari x koma y sama dengan, 1 per, dalam kurung, 2 pi kali sigma kuadrat, dikali e pangkat negatif, dalam kurung, x kuadrat ditambah y kuadrat, per 2 sigma kuadrat.
+
+Input: 3/(x+3)
+Output: 3 per, dalam kurung, x ditambah 3.
+
+Input: 6x2 + 3x - 5 (eksponen hilang format saat ekstraksi DOCX)
+Output: 6 x kuadrat ditambah 3 x dikurangi 5.
+
+Input: suhu berkisar -10°C hingga 35°C
+Output: suhu berkisar negatif 10 derajat Celsius hingga 35 derajat Celsius
 
 Input: I_blurred(x,y) = ∑_(i=-k)^k ∑_(j=-k)^k G(i,j)·I(x-i,y-j)
 Output: I sub blur dari x koma y sama dengan, jumlah dari i sama dengan negatif k sampai k, dari jumlah j sama dengan negatif k sampai k, dari G dari i koma j, dikali I dari x dikurangi i koma y dikurangi j.
@@ -1021,16 +1057,16 @@ Input: I_blurred(x, y) = G(x, y) * I(x, y)
 Output: I sub blur dari x koma y sama dengan, G dari x koma y, dikonvolusi dengan I dari x koma y.
 
 Input: G(x) = 1/(√(2π) σ) e^(x^2/(2σ^2))
-Output: G dari x sama dengan, satu per, akar kuadrat dari dua pi, dikali sigma, dikali e pangkat, x kuadrat per dua sigma kuadrat.
+Output: G dari x sama dengan, 1 per, dalam kurung, akar kuadrat dari 2 pi, dikali sigma, dikali e pangkat, x kuadrat per 2 sigma kuadrat.
 
 Input: k = ⌈3σ⌉
-Output: k sama dengan tiga sigma dibulatkan ke atas.
+Output: k sama dengan 3 sigma dibulatkan ke atas.
 
 Input: kernel 3×3 — 1 2 1 / 2 4 2 / 1 2 1
-Output: Baris pertama: satu, dua, satu. Baris kedua: dua, empat, dua. Baris ketiga: satu, dua, satu.
+Output: Baris pertama: 1, 2, 1. Baris kedua: 2, 4, 2. Baris ketiga: 1, 2, 1.
 
 Input: O(k²) to O(2k)
-Output: O besar dari k kuadrat menjadi O besar dari dua k.
+Output: O besar dari k kuadrat menjadi O besar dari 2 k.
 PROMPT;
     }
 
@@ -1062,8 +1098,15 @@ Output hanya berisi skrip narasi. Jangan tambahkan komentar, catatan, atau penje
 - Lemma/Korolari → baca sesuai labelnya
 - Bukti → "Bukti:"
 - Catatan kaki → "Catatan: [isi]."
-- Numbered list → "Pertama,", "Kedua,", "Ketiga,", dst.
+- Numbered list (non-soal) → "Pertama,", "Kedua,", "Ketiga,", dst.
 - Bullet list (prefix - atau tab) → "Pertama,", "Kedua,", "Ketiga,", dst.
+
+SOAL DAN PILIHAN GANDA:
+Jika dokumen berisi soal bernomor dengan opsi jawaban:
+- Setiap nomor soal di baris sendiri: "Soal nomor [N]:" lalu isi soal
+- Setiap opsi jawaban di baris terpisah: "a. [isi]", "b. [isi]", "c. [isi]", "d. [isi]"
+- JANGAN gabungkan soal dan opsi dalam satu paragraf panjang — pengguna NVDA membutuhkan navigasi baris per baris
+- Pertahankan urutan dan pemisahan persis seperti dokumen asli
 
 ═══ ATURAN PENULISAN SKRIP ═══
 
@@ -1073,7 +1116,7 @@ Output hanya berisi skrip narasi. Jangan tambahkan komentar, catatan, atau penje
 4. Tidak ada simbol, karakter khusus, LaTeX, atau markup apapun dalam output—semua harus tertulis dalam huruf dan kata.
 5. Bahasa Indonesia yang mengalir natural—tidak kaku, tidak robotik.
 6. Output selalu dalam Bahasa Indonesia. Untuk dokumen berbahasa Inggris: teks prosa asli dibaca apa adanya (tidak perlu diterjemahkan), namun label struktural (nama bagian, keterangan tabel) disampaikan dalam Bahasa Indonesia.
-7. Angka di luar ekspresi matematika boleh ditulis sebagai digit (1, 2, 3).
+7. Semua angka WAJIB ditulis sebagai digit: tulis "50", bukan "lima puluh"; tulis "120", bukan "seratus dua puluh". NVDA dan mesin Braille membaca digit langsung dan lebih efisien.
 8. Singkatan umum dieja penuh: "yaitu" bukan "i.e.", "misalnya" bukan "e.g.", "dan lain-lain" bukan "dll." atau "etc.".
 PROMPT;
     }
@@ -1093,9 +1136,15 @@ EKSPONEN:
 - x² → "x kuadrat"
 - x³ → "x kubik"
 - xⁿ → "x pangkat n"
-- 10⁻³ → "sepuluh pangkat negatif tiga"
+- 10⁻³ → "10 pangkat negatif 3"
 - eˣ → "e pangkat x"
 - x^{2} atau x^2 (LaTeX) → "x kuadrat"
+- 6x^2 → "6 x kuadrat"
+KRITIS — Artefak DOCX: Saat diekstrak dari Word, eksponen superscript sering kehilangan format dan menempel sebagai digit biasa. Angka yang langsung mengikuti variabel tanpa spasi dalam konteks matematika SERING merupakan eksponen yang hilang format:
+- "6x2" dalam ekspresi matematika → "6 x kuadrat"
+- "3x3" dalam ekspresi matematika → "3 x kubik"
+- "ax2 + bx + c" → "a x kuadrat ditambah b x ditambah c"
+Gunakan konteks kalimat untuk membedakan eksponen dari perkalian biasa.
 
 AKAR:
 - √x → "akar kuadrat dari x"
@@ -1106,11 +1155,14 @@ AKAR:
 - \sqrt[n]{x} (LaTeX) → "akar pangkat n dari x"
 
 PECAHAN:
-- a/b (sederhana) → "a per b"
-- (a+b)/(c-d) → "a tambah b, per, c kurang d"
-- 1/(√(2π) σ) → "satu per, akar kuadrat dari dua pi, dikali sigma"
+- a/b (satu suku pembilang dan penyebut) → "a per b"
 - \frac{a}{b} (LaTeX) → "a per b"
 - \frac{df}{dx} → "d f per d x"
+ATURAN "DALAM KURUNG": Jika pembilang atau penyebut mengandung lebih dari satu suku (ada +, −, atau perkalian kompleks), tambahkan "dalam kurung" agar makna tidak ambigu. Tanpa "dalam kurung", arti pecahan bisa berubah total:
+- 3/(x+3) → "3 per, dalam kurung, x ditambah 3"
+- (2x+1)/(y-5) → "dalam kurung, 2 x ditambah 1, per, dalam kurung, y dikurangi 5"
+- 1/(√(2π) σ) → "1 per, dalam kurung, akar kuadrat dari 2 pi, dikali sigma"
+- (a+b)/(c-d) → "dalam kurung, a ditambah b, per, dalam kurung, c dikurangi d"
 
 OPERASI DASAR:
 - + → "ditambah"
@@ -1153,8 +1205,8 @@ KALKULUS:
 
 HIMPUNAN DAN LOGIKA:
 - ∞ → "tak hingga"
-- ∈ → "anggota"
-- ∉ → "bukan anggota"
+- ∈ → "anggota dari"
+- ∉ → "bukan anggota dari"
 - ⊂ → "himpunan bagian dari"
 - ∪ → "gabungan"
 - ∩ → "irisan"
@@ -1164,6 +1216,9 @@ HIMPUNAN DAN LOGIKA:
 - ⇒ → "mengakibatkan"
 - ⟺ → "jika dan hanya jika"
 - ¬ → "bukan"
+- {a, b, c} → "himpunan yang berisi a, b, dan c"
+- {x | kondisi} atau {x : kondisi} → "himpunan x sedemikian sehingga kondisi"
+PENTING: JANGAN gunakan deskripsi visual seperti "kurung kurawal buka/tutup" — tunanetra tidak memerlukan deskripsi bentuk simbol, gunakan makna semantiknya.
 
 HURUF YUNANI:
 - α→alfa, β→beta, γ→gamma, δ→delta, ε→epsilon, ζ→zeta, η→eta
@@ -1202,9 +1257,9 @@ NOTASI LAINNYA:
 - \binom{n}{k} → "n pilih k"
 - P(A) → "peluang kejadian A"
 - P(A|B) → "peluang A diketahui B"
-- \left( ... \right) → "kurung buka ... kurung tutup"
-- \left[ ... \right] → "kurung siku buka ... kurung siku tutup"
-- \left\{ ... \right\} → "kurung kurawal buka ... kurung kurawal tutup"
+- \left( ... \right) → baca isi langsung; sebut "dalam kurung, ..." hanya jika perlu kejelasan makna (misal: pecahan kompleks)
+- \left[ ... \right] → baca isi langsung; sebut "dalam kurung siku, ..." hanya jika perlu
+- \left\{ ... \right\} → baca sebagai himpunan (lihat aturan HIMPUNAN DAN LOGIKA di atas)
 - ⌈x⌉ → "x dibulatkan ke atas" (fungsi ceiling/langit-langit)
 - ⌊x⌋ → "x dibulatkan ke bawah" (fungsi floor/lantai)
 - ⌈3σ⌉ → "tiga sigma dibulatkan ke atas"
@@ -1214,10 +1269,24 @@ NOTASI LAINNYA:
 - Θ(f(n)) → "Theta dari f dari n"
 
 ANGKA DESIMAL:
-Titik desimal dalam angka SELALU dibaca "koma":
-- 2.71828 → "dua koma tujuh satu delapan dua delapan"
-- 0.85 → "nol koma delapan lima"
-- 99.7% → "sembilan puluh sembilan koma tujuh persen"
+Titik desimal dalam angka SELALU dibaca "koma". Digit tetap dibaca sebagai digit, bukan dieja:
+- 2.71828 → "2 koma 7 1 8 2 8"
+- 0.85 → "0 koma 8 5"
+- 99.7% → "99 koma 7 persen"
+Angka bulat di luar ekspresi matematika WAJIB tetap sebagai digit: tulis "50", bukan "lima puluh".
+
+SATUAN DAN SIMBOL KHUSUS:
+- ° → "derajat"
+- °C → "derajat Celsius"
+- °F → "derajat Fahrenheit"
+- 10°C → "10 derajat Celsius"
+- −5°C atau -5°C → "negatif 5 derajat Celsius"
+PENTING — Tanda hubung vs tanda minus:
+- Tanda minus matematika (−, -) di depan angka dalam ekspresi → "negatif"
+- Tanda hubung (–, —) antara dua angka sebagai rentang → "sampai"
+- "10–20°C" → "10 sampai 20 derajat Celsius"
+- "x = -7" → "x sama dengan negatif 7"
+Jangan konfusikan tanda hubung/pisah antar angka dengan tanda negatif matematis.
 
 ═══ STRUKTUR DOKUMEN ═══
 
@@ -1236,8 +1305,15 @@ Titik desimal dalam angka SELALU dibaca "koma":
 - Lemma/Korolari → baca sesuai labelnya
 - Bukti → "Bukti:"
 - Catatan kaki → "Catatan: [isi]."
-- Numbered list → "Pertama,", "Kedua,", "Ketiga,", dst.
+- Numbered list (non-soal) → "Pertama,", "Kedua,", "Ketiga,", dst.
 - Bullet list (prefix - atau tab) → "Pertama,", "Kedua,", "Ketiga,", dst.
+
+SOAL DAN PILIHAN GANDA:
+Jika dokumen berisi soal bernomor dengan opsi jawaban:
+- Setiap nomor soal di baris sendiri: "Soal nomor [N]:" lalu isi soal
+- Setiap opsi jawaban di baris terpisah: "a. [isi]", "b. [isi]", "c. [isi]", "d. [isi]"
+- JANGAN gabungkan soal dan opsi dalam satu paragraf panjang — pengguna NVDA membutuhkan navigasi baris per baris
+- Pertahankan urutan dan pemisahan persis seperti dokumen asli
 
 ═══ ATURAN PENULISAN SKRIP ═══
 
@@ -1248,10 +1324,10 @@ Titik desimal dalam angka SELALU dibaca "koma":
 5. Tidak ada simbol, karakter khusus, LaTeX, atau markup apapun dalam output—semua harus tertulis dalam huruf dan kata.
 6. Bahasa Indonesia yang mengalir natural—tidak kaku, tidak robotik.
 7. Output selalu dalam Bahasa Indonesia. Untuk dokumen berbahasa Inggris: teks prosa asli dibaca apa adanya (tidak perlu diterjemahkan), namun simbol matematika dan label struktural (nama bagian, keterangan tabel) disampaikan dalam Bahasa Indonesia.
-8. Angka di luar ekspresi matematika boleh ditulis sebagai digit (1, 2, 3).
+8. Semua angka WAJIB ditulis sebagai digit: tulis "50", bukan "lima puluh"; tulis "120", bukan "seratus dua puluh". NVDA dan mesin Braille membaca digit langsung dan lebih efisien.
 9. Singkatan umum dieja penuh: "yaitu" bukan "i.e.", "misalnya" bukan "e.g.", "dan lain-lain" bukan "dll." atau "etc.".
 10. Satuan fisika dibaca lengkap: "meter per detik kuadrat" bukan "m/s²".
-11. Angka desimal dibaca dengan "koma": 2.71 → "dua koma tujuh satu", 0.85 → "nol koma delapan lima".
+11. Angka desimal dibaca dengan "koma" dan digit tetap: 2.71 → "2 koma 7 1", 0.85 → "0 koma 8 5".
 12. Notasi perkiraan "approx." dibaca "kurang lebih"; "≈" dibaca "kurang lebih sama dengan"; "~" dibaca "kira-kira".
 
 ═══ TANDA [PERSAMAAN: ...] ═══
@@ -1275,10 +1351,19 @@ tanpa lanjutan narasi persamaannya adalah KESALAHAN. Selalu baca persamaannya.
 ═══ CONTOH NARASI PERSAMAAN ═══
 
 Input: G(x, y)=1/(2πσ^2) e^(-(x^2+y^2)/(2σ^2))
-Output: G dari x koma y sama dengan, satu per dua kali pi kali sigma kuadrat, dikali e pangkat negatif, x kuadrat ditambah y kuadrat, per dua sigma kuadrat.
+Output: G dari x koma y sama dengan, 1 per, dalam kurung, 2 pi kali sigma kuadrat, dikali e pangkat negatif, dalam kurung, x kuadrat ditambah y kuadrat, per 2 sigma kuadrat.
 
 Input: [PERSAMAAN: G(x,y)=1/(2πσ2)e-(x2+y2)/(2σ2)]
-Output: G dari x koma y sama dengan, satu per dua kali pi kali sigma kuadrat, dikali e pangkat negatif, x kuadrat ditambah y kuadrat, per dua sigma kuadrat.
+Output: G dari x koma y sama dengan, 1 per, dalam kurung, 2 pi kali sigma kuadrat, dikali e pangkat negatif, dalam kurung, x kuadrat ditambah y kuadrat, per 2 sigma kuadrat.
+
+Input: 3/(x+3)
+Output: 3 per, dalam kurung, x ditambah 3.
+
+Input: 6x2 + 3x - 5 (eksponen hilang format saat ekstraksi DOCX)
+Output: 6 x kuadrat ditambah 3 x dikurangi 5.
+
+Input: suhu berkisar -10°C hingga 35°C
+Output: suhu berkisar negatif 10 derajat Celsius hingga 35 derajat Celsius
 
 Input: I_blurred(x,y) = ∑_(i=-k)^k ∑_(j=-k)^k G(i,j)·I(x-i,y-j)
 Output: I sub blur dari x koma y sama dengan, jumlah dari i sama dengan negatif k sampai k, dari jumlah j sama dengan negatif k sampai k, dari G dari i koma j, dikali I dari x dikurangi i koma y dikurangi j.
@@ -1287,16 +1372,16 @@ Input: I_blurred(x, y) = G(x, y) * I(x, y)
 Output: I sub blur dari x koma y sama dengan, G dari x koma y, dikonvolusi dengan I dari x koma y.
 
 Input: G(x) = 1/(√(2π) σ) e^(x^2/(2σ^2))
-Output: G dari x sama dengan, satu per, akar kuadrat dari dua pi, dikali sigma, dikali e pangkat, x kuadrat per dua sigma kuadrat.
+Output: G dari x sama dengan, 1 per, dalam kurung, akar kuadrat dari 2 pi, dikali sigma, dikali e pangkat, x kuadrat per 2 sigma kuadrat.
 
 Input: k = ⌈3σ⌉
-Output: k sama dengan tiga sigma dibulatkan ke atas.
+Output: k sama dengan 3 sigma dibulatkan ke atas.
 
 Input: kernel 3×3 — 1 2 1 / 2 4 2 / 1 2 1
-Output: Baris pertama: satu, dua, satu. Baris kedua: dua, empat, dua. Baris ketiga: satu, dua, satu.
+Output: Baris pertama: 1, 2, 1. Baris kedua: 2, 4, 2. Baris ketiga: 1, 2, 1.
 
 Input: O(k²) to O(2k)
-Output: O besar dari k kuadrat menjadi O besar dari dua k.
+Output: O besar dari k kuadrat menjadi O besar dari 2 k.
 PROMPT;
     }
 
