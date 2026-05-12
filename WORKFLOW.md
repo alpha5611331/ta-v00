@@ -66,11 +66,16 @@ Rute: `POST /upload` → `UploadController@store`
     • Normalkan whitespace dan baris kosong berulang
 
 [5] Remediasi AI
-    ├── DOCX: kirim segmen teks (4000 kar/segmen) ke GPT-4o-mini
-    │         System prompt khusus STEM → konversi simbol/rumus ke narasi Indonesia
-    │         Contoh: "x²" → "x kuadrat", "∫" → "integral dari"
+    ├── DOCX: potong teks menjadi segmen (4000 kar/segmen), tiap segmen melalui dua fase:
+    │         Fase 1 – Ekstraksi Matematika (GPT-5.4-mini, temperature 0.1):
+    │           System prompt STEM math → terjemahkan semua ekspresi matematika ke
+    │           narasi Bahasa Indonesia; kembalikan teks lengkap tanpa simbol
+    │           Contoh: "x²" → "x kuadrat", "∫" → "integral dari"
+    │         Fase 2 – Narasi Dokumen (GPT-5.4-mini, temperature 0.2):
+    │           System prompt narasi STEM → ubah teks (sudah bebas simbol) menjadi
+    │           skrip narasi siap dibaca screen reader / mesin Braille
     └── PDF:  render halaman ke PNG via Ghostscript
-              Kirim gambar ke GPT-4o vision (maks 10 halaman)
+              Kirim gambar ke GPT-5.4 vision (maks 10 halaman)
               Fallback: pesan panduan jika Ghostscript/API tidak tersedia
 
     Jika tidak ada API key → Simulasi offline (regex sederhana)
@@ -120,7 +125,7 @@ Rute: `POST /tanya/ask` → `TanyaController@ask`
     • System prompt: "Kamu asisten VOXORA untuk tunanetra..."
     • User message: "Konteks dokumen: [teks] \n\n Pertanyaan: [pertanyaan]"
 
-[4] Kirim ke GPT-4o-mini (timeout 30 detik)
+[4] Kirim ke GPT-5.4-mini (timeout 30 detik)
     Jika gagal / tidak ada API key → jawaban simulasi statis
 
 [5] Simpan ke tabel document_questions (pertanyaan + jawaban + flag simulated)
@@ -176,7 +181,7 @@ Rute: `/admin/*` — dilindungi middleware `app.admin`
 | Framework           | Laravel 13 (PHP 8.4)                        | Backend MVC                                         |
 | Database            | SQLite (default)                            | Semua data: dokumen, pertanyaan, pengiriman braille |
 | Frontend            | Blade + TailwindCSS 4.0                     | Server-side rendering, tanpa JS framework           |
-| AI Remediasi        | OpenAI GPT-4o (vision) / GPT-4o-mini (teks) | Konversi simbol STEM ke narasi Indonesia            |
+| AI Remediasi        | OpenAI GPT-5.4 (vision) / GPT-5.4-mini (teks) | Konversi simbol STEM ke narasi Indonesia (2 fase) |
 | PDF Processing      | Ghostscript (rasterisasi) + pdftotext       | Ekstraksi teks / render halaman                     |
 | DOCX Processing     | ZipArchive + DOMXPath + phpoffice/phpword   | Ekstraksi teks & persamaan OMML                     |
 | Braille Konversi    | Mapping karakter Unicode Braille Grade 1    | Built-in, tanpa library eksternal                   |
@@ -196,7 +201,7 @@ PDF / DOCX
 [Sanitasi] ──→ hapus noise (header, footer, baris kosong)              │
     │                                                                  │
     ▼                                                                  ▼
-[GPT-4o-mini] ────────────────────────────────────────── [GPT-4o Vision per halaman]
+[GPT-5.4-mini Fase 1: math] → [GPT-5.4-mini Fase 2: narasi] ─── [GPT-5.4 Vision per halaman]
     │ narasi teks STEM dalam Bahasa Indonesia
     ▼
 [Database: documents.remediated_text]
