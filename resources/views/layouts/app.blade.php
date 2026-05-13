@@ -511,7 +511,7 @@
 
             <a href="{{ route('tanya.index') }}"
                class="nav-link {{ request()->routeIs('tanya.*') ? 'active' : '' }}"
-               aria-label="Tanya Bot – tanya jawab dokumen dengan asisten AI bersuara"
+               aria-label="Tanya Dokumen – tanya jawab dokumen dengan asisten AI bersuara"
                @if(request()->routeIs('tanya.*')) aria-current="page" @endif
                 <svg aria-hidden="true" focusable="false" class="w-5 h-5 flex-shrink-0"
                      fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -519,7 +519,7 @@
                           d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6
                           a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
                 </svg>
-                Tanya Bot
+                Tanya Dokumen
             </a>
 
             <a href="{{ route('braille.index') }}"
