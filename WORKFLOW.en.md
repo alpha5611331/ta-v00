@@ -66,12 +66,16 @@ Route: `POST /upload` → `UploadController@store`
     • Normalize whitespace and collapse repeated blank lines
 
 [5] AI Remediation
-    ├── DOCX: send text segments (4,000 chars/segment) to GPT-4o-mini
-    │         STEM-specific system prompt → convert symbols/formulas to
-    │         Indonesian natural language narration
-    │         Example: "x²" → "x squared", "∫" → "integral of"
+    ├── DOCX: split text into segments (4,000 chars/segment); each segment goes through two phases:
+    │         Phase 1 – Math Extraction (GPT-5.4-mini, temperature 0.1):
+    │           STEM math system prompt → translate all math expressions into
+    │           Indonesian natural language narration; return full text without symbols
+    │           Example: "x²" → "x kuadrat", "∫" → "integral dari"
+    │         Phase 2 – Document Narration (GPT-5.4-mini, temperature 0.2):
+    │           STEM narration system prompt → convert symbol-free text into a
+    │           narration script ready for screen readers / Braille devices
     └── PDF:  render pages to PNG via Ghostscript
-              Send images to GPT-4o vision (max 10 pages)
+              Send images to GPT-5.4 vision (max 10 pages)
               Fallback: guidance message if Ghostscript/API unavailable
 
     If no API key is set → Offline simulation mode (simple regex substitution)
@@ -121,7 +125,7 @@ Route: `POST /tanya/ask` → `TanyaController@ask`
     • System prompt: "You are the VOXORA assistant for visually impaired users..."
     • User message: "Document context: [text]\n\nQuestion: [question]"
 
-[4] Send to GPT-4o-mini (30-second timeout)
+[4] Send to GPT-5.4-mini (30-second timeout)
     If failed / no API key → return static simulated answer
 
 [5] Save to table document_questions (question + answer + simulated flag)
@@ -177,7 +181,7 @@ Route: `/admin/*` — protected by `app.admin` middleware
 | Framework           | Laravel 13 (PHP 8.4)                        | Backend MVC                                          |
 | Database            | SQLite (default)                            | All data: documents, questions, Braille deliveries   |
 | Frontend            | Blade + TailwindCSS 4.0                     | Server-side rendering, no JS framework               |
-| AI Remediation      | OpenAI GPT-4o (vision) / GPT-4o-mini (text) | Converts STEM symbols to Indonesian natural language |
+| AI Remediation      | OpenAI GPT-5.4 (vision) / GPT-5.4-mini (text) | Converts STEM symbols to Indonesian natural language (2-phase) |
 | PDF Processing      | Ghostscript (rasterization) + pdftotext     | Text extraction / page rendering                     |
 | DOCX Processing     | ZipArchive + DOMXPath + phpoffice/phpword   | Text & OMML equation extraction                      |
 | Braille Conversion  | Unicode Braille Grade 1 character mapping   | Built-in, no external library required               |
@@ -197,7 +201,7 @@ PDF / DOCX
 [Sanitization] ──→ strip noise (headers, footers, blank lines)          │
     │                                                                   │
     ▼                                                                   ▼
-[GPT-4o-mini] ─────────────────────────────────────────── [GPT-4o Vision per page]
+[GPT-5.4-mini Phase 1: math] → [GPT-5.4-mini Phase 2: narrate] ── [GPT-5.4 Vision per page]
     │ STEM text narration in Indonesian
     ▼
 [Database: documents.remediated_text]
