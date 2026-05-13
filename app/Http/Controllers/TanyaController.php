@@ -67,9 +67,9 @@ PROMPT;
             $response = Http::timeout(30)
                 ->withToken(config('services.openai.api_key'))
                 ->post(config('services.openai.endpoint', 'https://api.openai.com/v1/chat/completions'), [
-                    'model'       => config('services.openai.model_qa', 'gpt-4o-mini'),
+                    'model'       => config('services.openai.model_text', 'gpt-5.4-mini'),
                     'temperature' => 0.4,
-                    'max_tokens'  => 600,
+                    'max_completion_tokens' => 600,
                     'messages'    => [
                         ['role' => 'system', 'content' => $systemPrompt],
                         ...$messages,
@@ -78,7 +78,7 @@ PROMPT;
 
             if ($response->successful()) {
                 $answer = $response->json('choices.0.message.content', '');
-                $this->recordQuestion($document, $question, $answer, false, config('services.openai.model_qa', 'gpt-4o-mini'));
+                $this->recordQuestion($document, $question, $answer, false, config('services.openai.model_text', 'gpt-5.4-mini'));
 
                 return response()->json(['answer' => $answer]);
             }

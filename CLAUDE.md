@@ -47,7 +47,7 @@ php artisan test --filter TestClassName
 - **Backend:** Laravel 13, PHP 8.4
 - **Database:** SQLite (default); MySQL supported via `DB_CONNECTION` in `.env`
 - **Frontend:** Blade templates + TailwindCSS 4.0 via Vite (no JS framework)
-- **AI:** OpenAI API (`gpt-4o-mini`) with automatic fallback simulation mode
+- **AI:** OpenAI API (`gpt-5.4` vision, `gpt-5.4-mini` text) with automatic fallback simulation mode
 - **Sessions/Cache/Queue:** All use database driver — no external services required
 
 ### Controllers & Responsibilities
@@ -67,10 +67,15 @@ php artisan test --filter TestClassName
 - `Document` stores both `raw_text` (extracted) and `remediated_text` (AI-processed)
 
 ### AI Integration Pattern
-Both `UploadController` (remediation) and `TanyaController` (Q&A) follow the same pattern:
-1. Attempt real OpenAI API call using `OPENAI_API_KEY`
-2. On failure or missing key, fall back to simulation mode (generates plausible dummy output)
-3. Store `is_simulated` flag in DB so the UI can indicate simulated results
+`TanyaController` (Q&A): single call to `gpt-5.4-mini`, falls back to simulated answer on failure.
+
+`UploadController` (remediation) uses a **two-phase pipeline** per text segment:
+1. **Phase 1 — Math Extraction** (`resolveEquations`): `gpt-5.4-mini` (temperature 0.1) translates all math symbols/formulas to Indonesian narration; returns clean text.
+2. **Phase 2 — Document Narration** (`narrateSegment`): `gpt-5.4-mini` (temperature 0.2) converts the symbol-free text into a screen-reader-ready narration script.
+
+PDF documents skip phases 1–2 and go directly to `gpt-5.4` vision (page images via Ghostscript).
+
+On any failure or missing `OPENAI_API_KEY`, the system falls back to simulation mode (simple regex substitution). The `is_simulated` flag is stored in DB so the UI can indicate simulated results.
 
 ### Braille Delivery
 `BrailleController` converts remediated text to Unicode Braille and sends chunks (configurable: 5/10/20/40 chars) to the EduBraille device either via HTTP API or Serial connection. Delivery attempts are logged in `braille_deliveries`.
@@ -88,8 +93,11 @@ The UI uses a custom color palette defined in `resources/css/app.css` with verif
 Key variables beyond Laravel defaults (see `.env.example`):
 ```
 OPENAI_API_KEY=          # Optional; app works without it via simulation fallback
-EDUBRAILLE_HOST=         # EduBraille device HTTP endpoint
-EDUBRAILLE_PORT=         # EduBraille device port
+OPENAI_MODEL_VISION=     # Default: gpt-5.4  (PDF vision narration)
+OPENAI_MODEL_TEXT=       # Default: gpt-5.4-mini  (DOCX text remediation + Q&A)
+EDUBRAILLE_ENDPOINT=     # EduBraille device HTTP endpoint
+EDUBRAILLE_TOKEN=        # EduBraille auth token
+EDUBRAILLE_DEVICE_ID=    # Target device ID (default: DEFAULT)
 ```
 
 ## Key Conventions
