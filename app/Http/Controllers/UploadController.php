@@ -26,17 +26,25 @@ class UploadController extends Controller
 
     /** Pola sanitasi: header/footer/nomor halaman */
     private const SANITIZE_PATTERNS = [
-        '/\b(Halaman|Page|hal\.|pg\.)\s*\d+\b/ui',          // nomor halaman
-        '/^\s*\d+\s*$/m',                                    // baris hanya angka (page number)
-        '/^.{1,80}(\||\t).{1,80}$/m',                       // tab-separated header/footer
-        '/\[.*?(header|footer|watermark).*?\]/ui',           // tag markup header/footer
-        '/={3,}|-{3,}/m',                                    // garis pemisah dekoratif
-        '/\r\n|\r/',                                         // normalize newline
-        '/\n{3,}/',                                          // kolaps multiple blank lines
+        '/\b(Halaman|Page|hal\.|pg\.)\s*\d+\b/ui',                     // nomor halaman berteks
+        '/^\s*\d+\s*$/m',                                               // baris hanya angka (page number)
+        '/^\s*[-–—~*]\s*\d+\s*[-–—~*]\s*$/m',                         // "- 1 -", "~ 1 ~"
+        '/^\s*\d+\s*(?:of|dari)\s*\d+\s*$/mi',                         // "1 of 10", "1 dari 10"
+        '/^.{1,80}(\||\t).{1,80}$/m',                                   // tab-separated header/footer
+        '/\[.*?(header|footer|watermark).*?\]/ui',                      // tag markup header/footer
+        '/^\s*(?:©|Copyright|Hak\s+Cipta)\b.{0,200}$/mi',              // baris copyright
+        '/^.*\b(?:confidential|rahasia|do\s+not\s+distribute|internal\s+use\s+only|not\s+for\s+distribution)\b.*$/mi',
+        '/={3,}|-{3,}/m',                                               // garis pemisah dekoratif
+        '/\r\n|\r/',                                                     // normalize newline
+        '/\n{3,}/',                                                      // kolaps multiple blank lines
     ];
 
     /** Replacement untuk pattern sanitasi */
     private const SANITIZE_REPLACE = [
+        '',
+        '',
+        '',
+        '',
         '',
         '',
         '',
@@ -1086,7 +1094,8 @@ Output hanya berisi skrip narasi. Jangan tambahkan komentar, catatan, atau penje
 - Heading "# Bab 1" atau "# BAB I" → "BAB SATU."  (tulis angka dengan kata)
 - Heading "## Sub-bagian" → "Sub-bagian: [judul]."
 - Heading "### ..." → "Bagian: [judul]."
-- Penomoran bagian "1.", "2.", "3." → "Bagian satu.", "Bagian dua.", "Bagian tiga."
+- Penomoran bagian "1.", "2.", "3." → "Bagian satu.", "Bagian dua.", "Bagian tiga." — HANYA berlaku untuk judul/heading bagian yang berdiri sendiri, BUKAN nomor soal.
+- Nomor soal/pertanyaan "1.", "2.", dst. → pertahankan PERSIS sebagai "1.", "2.", dst. JANGAN ubah menjadi "Bagian satu." atau bentuk lain.
 - Penomoran sub-bagian "1.1.", "2.3." → "Sub-bagian satu titik satu.", "Sub-bagian dua titik tiga."
 - Gambar → "Gambar [nomor]: [deskripsikan dari caption atau konteks sekitar]."
 - Tabel (baris dengan |) → "Tabel [nomor] memuat kolom [daftar nama kolom]. Baca baris data satu per satu: baris satu, nilai kolom pertama adalah ..., nilai kolom kedua adalah ..., dan seterusnya."
@@ -1100,10 +1109,11 @@ Output hanya berisi skrip narasi. Jangan tambahkan komentar, catatan, atau penje
 - Catatan kaki → "Catatan: [isi]."
 - Numbered list (non-soal) → "Pertama,", "Kedua,", "Ketiga,", dst.
 - Bullet list (prefix - atau tab) → "Pertama,", "Kedua,", "Ketiga,", dst.
+- Header/footer/nomor halaman (misalnya "Page 1", "- 1 -", "Confidential – Do Not Distribute", "© 2024 ...") → ABAIKAN sepenuhnya, jangan masukkan ke dalam narasi.
 
 SOAL DAN PILIHAN GANDA:
 Jika dokumen berisi soal bernomor dengan opsi jawaban:
-- Setiap nomor soal di baris sendiri: "Soal nomor [N]:" lalu isi soal
+- Setiap nomor soal di baris sendiri: pertahankan "N." persis seperti aslinya, lalu isi soal
 - Setiap opsi jawaban di baris terpisah: "a. [isi]", "b. [isi]", "c. [isi]", "d. [isi]"
 - JANGAN gabungkan soal dan opsi dalam satu paragraf panjang — pengguna NVDA membutuhkan navigasi baris per baris
 - Pertahankan urutan dan pemisahan persis seperti dokumen asli
@@ -1293,7 +1303,8 @@ Jangan konfusikan tanda hubung/pisah antar angka dengan tanda negatif matematis.
 - Heading "# Bab 1" atau "# BAB I" → "BAB SATU."  (tulis angka dengan kata)
 - Heading "## Sub-bagian" → "Sub-bagian: [judul]."
 - Heading "### ..." → "Bagian: [judul]."
-- Penomoran bagian "1.", "2.", "3." → "Bagian satu.", "Bagian dua.", "Bagian tiga."
+- Penomoran bagian "1.", "2.", "3." → "Bagian satu.", "Bagian dua.", "Bagian tiga." — HANYA berlaku untuk judul/heading bagian yang berdiri sendiri, BUKAN nomor soal.
+- Nomor soal/pertanyaan "1.", "2.", dst. → pertahankan PERSIS sebagai "1.", "2.", dst. JANGAN ubah menjadi "Bagian satu." atau bentuk lain.
 - Penomoran sub-bagian "1.1.", "2.3." → "Sub-bagian satu titik satu.", "Sub-bagian dua titik tiga."
 - Gambar → "Gambar [nomor]: [deskripsikan dari caption atau konteks sekitar]."
 - Tabel (baris dengan |) → "Tabel [nomor] memuat kolom [daftar nama kolom]. Baca baris data satu per satu: baris satu, nilai kolom pertama adalah ..., nilai kolom kedua adalah ..., dan seterusnya."
@@ -1307,10 +1318,11 @@ Jangan konfusikan tanda hubung/pisah antar angka dengan tanda negatif matematis.
 - Catatan kaki → "Catatan: [isi]."
 - Numbered list (non-soal) → "Pertama,", "Kedua,", "Ketiga,", dst.
 - Bullet list (prefix - atau tab) → "Pertama,", "Kedua,", "Ketiga,", dst.
+- Header/footer/nomor halaman (misalnya "Page 1", "- 1 -", "Confidential – Do Not Distribute", "© 2024 ...") → ABAIKAN sepenuhnya, jangan masukkan ke dalam narasi.
 
 SOAL DAN PILIHAN GANDA:
 Jika dokumen berisi soal bernomor dengan opsi jawaban:
-- Setiap nomor soal di baris sendiri: "Soal nomor [N]:" lalu isi soal
+- Setiap nomor soal di baris sendiri: pertahankan "N." persis seperti aslinya, lalu isi soal
 - Setiap opsi jawaban di baris terpisah: "a. [isi]", "b. [isi]", "c. [isi]", "d. [isi]"
 - JANGAN gabungkan soal dan opsi dalam satu paragraf panjang — pengguna NVDA membutuhkan navigasi baris per baris
 - Pertahankan urutan dan pemisahan persis seperti dokumen asli
