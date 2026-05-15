@@ -1009,10 +1009,11 @@ NOTASI LAINNYA:
 - Θ(f(n)) → "Theta dari f dari n"
 
 ANGKA DESIMAL:
-Titik desimal dalam angka SELALU dibaca "koma". Digit tetap dibaca sebagai digit, bukan dieja:
-- 2.71828 → "2 koma 7 1 8 2 8"
-- 0.85 → "0 koma 8 5"
-- 99.7% → "99 koma 7 persen"
+Titik desimal (.) dalam angka → ganti dengan tanda koma (,). JANGAN gunakan kata "koma":
+- 2.71828 → "2,71828"
+- 0.85 → "0,85"
+- 99.7% → "99,7%"
+Tanda koma antara angka dalam daftar data (misalnya "6, 3, 7, 9") adalah pemisah nilai — pertahankan apa adanya, bukan penanda desimal.
 Angka bulat di luar ekspresi matematika WAJIB tetap sebagai digit: tulis "50", bukan "lima puluh".
 
 SATUAN DAN SIMBOL KHUSUS:
@@ -1280,10 +1281,11 @@ NOTASI LAINNYA:
 - Θ(f(n)) → "Theta dari f dari n"
 
 ANGKA DESIMAL:
-Titik desimal dalam angka SELALU dibaca "koma". Digit tetap dibaca sebagai digit, bukan dieja:
-- 2.71828 → "2 koma 7 1 8 2 8"
-- 0.85 → "0 koma 8 5"
-- 99.7% → "99 koma 7 persen"
+Titik desimal (.) dalam angka → ganti dengan tanda koma (,). JANGAN gunakan kata "koma":
+- 2.71828 → "2,71828"
+- 0.85 → "0,85"
+- 99.7% → "99,7%"
+Tanda koma antara angka dalam daftar data (misalnya "6, 3, 7, 9") adalah pemisah nilai — pertahankan apa adanya, bukan penanda desimal.
 Angka bulat di luar ekspresi matematika WAJIB tetap sebagai digit: tulis "50", bukan "lima puluh".
 
 SATUAN DAN SIMBOL KHUSUS:
@@ -1341,7 +1343,7 @@ Jika dokumen berisi soal bernomor dengan opsi jawaban:
 8. Semua angka WAJIB ditulis sebagai digit: tulis "50", bukan "lima puluh"; tulis "120", bukan "seratus dua puluh". NVDA dan mesin Braille membaca digit langsung dan lebih efisien. KECUALI label struktural: heading bab ("BAB SATU") dan penomoran bagian ("Bagian satu.") tetap menggunakan kata.
 9. Singkatan umum dieja penuh: "yaitu" bukan "i.e.", "misalnya" bukan "e.g.", "dan lain-lain" bukan "dll." atau "etc.".
 10. Satuan fisika dibaca lengkap: "meter per detik kuadrat" bukan "m/s²".
-11. Angka desimal dibaca dengan "koma" dan digit tetap: 2.71 → "2 koma 7 1", 0.85 → "0 koma 8 5".
+11. Angka desimal: titik (.) → ganti dengan tanda koma (,), bukan kata "koma": 2.71 → "2,71", 0.85 → "0,85". Tanda koma antar angka dalam daftar data adalah pemisah nilai — pertahankan apa adanya.
 12. Notasi perkiraan "approx." dibaca "kurang lebih"; "≈" dibaca "kurang lebih sama dengan"; "~" dibaca "kira-kira".
 
 ═══ TANDA [PERSAMAAN: ...] ═══
