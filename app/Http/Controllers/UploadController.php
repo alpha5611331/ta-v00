@@ -986,7 +986,7 @@ VEKTOR DAN MATRIKS:
 - Matriks angka (grid/tabel nilai) → baca baris per baris:
   "Baris pertama: [nilai], [nilai], [nilai]. Baris kedua: [nilai], [nilai], [nilai]. Dan seterusnya."
   Contoh kernel 3×3 dengan nilai 1 2 1 / 2 4 2 / 1 2 1:
-  "Baris pertama: satu, dua, satu. Baris kedua: dua, empat, dua. Baris ketiga: satu, dua, satu."
+  "Baris pertama: 1, 2, 1. Baris kedua: 2, 4, 2. Baris ketiga: 1, 2, 1."
 
 NILAI MUTLAK DAN NORMA:
 - |x| → "nilai mutlak dari x"
@@ -1092,6 +1092,7 @@ Output hanya berisi skrip narasi. Jangan tambahkan komentar, catatan, atau penje
 ═══ STRUKTUR DOKUMEN ═══
 
 - Heading "# Bab 1" atau "# BAB I" → "BAB SATU."  (tulis angka dengan kata)
+- Angka Romawi di luar heading yang berfungsi sebagai label urutan atau penomoran → ubah ke angka Arab. Contoh: "Bab IV" → "Bab 4", "Kelas XI" → "Kelas 11", "Kuadran II" → "Kuadran 2", "Grafik III" → "Grafik 3". Berlaku pula untuk opsi jawaban bertanda Romawi: "I." "II." "III." "IV." → "1." "2." "3." "4." — BUKAN "Pertama." dst. (aturan ini khusus label/opsi Romawi, bukan daftar langkah biasa).
 - Heading "## Sub-bagian" → "Sub-bagian: [judul]."
 - Heading "### ..." → "Bagian: [judul]."
 - Penomoran bagian "1.", "2.", "3." → "Bagian satu.", "Bagian dua.", "Bagian tiga." — HANYA berlaku untuk judul/heading bagian yang berdiri sendiri, BUKAN nomor soal.
@@ -1126,7 +1127,7 @@ Jika dokumen berisi soal bernomor dengan opsi jawaban:
 4. Tidak ada simbol, karakter khusus, LaTeX, atau markup apapun dalam output—semua harus tertulis dalam huruf dan kata.
 5. Bahasa Indonesia yang mengalir natural—tidak kaku, tidak robotik.
 6. Output selalu dalam Bahasa Indonesia. Untuk dokumen berbahasa Inggris: teks prosa asli dibaca apa adanya (tidak perlu diterjemahkan), namun label struktural (nama bagian, keterangan tabel) disampaikan dalam Bahasa Indonesia.
-7. Semua angka WAJIB ditulis sebagai digit: tulis "50", bukan "lima puluh"; tulis "120", bukan "seratus dua puluh". NVDA dan mesin Braille membaca digit langsung dan lebih efisien.
+7. Semua angka WAJIB ditulis sebagai digit: tulis "50", bukan "lima puluh"; tulis "120", bukan "seratus dua puluh". NVDA dan mesin Braille membaca digit langsung dan lebih efisien. KECUALI label struktural: heading bab ("BAB SATU") dan penomoran bagian ("Bagian satu.") tetap menggunakan kata.
 8. Singkatan umum dieja penuh: "yaitu" bukan "i.e.", "misalnya" bukan "e.g.", "dan lain-lain" bukan "dll." atau "etc.".
 PROMPT;
     }
@@ -1256,7 +1257,7 @@ VEKTOR DAN MATRIKS:
 - Matriks angka (grid/tabel nilai) → baca baris per baris:
   "Baris pertama: [nilai], [nilai], [nilai]. Baris kedua: [nilai], [nilai], [nilai]. Dan seterusnya."
   Contoh kernel 3×3 dengan nilai 1 2 1 / 2 4 2 / 1 2 1:
-  "Baris pertama: satu, dua, satu. Baris kedua: dua, empat, dua. Baris ketiga: satu, dua, satu."
+  "Baris pertama: 1, 2, 1. Baris kedua: 2, 4, 2. Baris ketiga: 1, 2, 1."
 
 NILAI MUTLAK DAN NORMA:
 - |x| → "nilai mutlak dari x"
@@ -1301,6 +1302,7 @@ Jangan konfusikan tanda hubung/pisah antar angka dengan tanda negatif matematis.
 ═══ STRUKTUR DOKUMEN ═══
 
 - Heading "# Bab 1" atau "# BAB I" → "BAB SATU."  (tulis angka dengan kata)
+- Angka Romawi di luar heading yang berfungsi sebagai label urutan atau penomoran → ubah ke angka Arab. Contoh: "Bab IV" → "Bab 4", "Kelas XI" → "Kelas 11", "Kuadran II" → "Kuadran 2", "Grafik III" → "Grafik 3". Berlaku pula untuk opsi jawaban bertanda Romawi: "I." "II." "III." "IV." → "1." "2." "3." "4." — BUKAN "Pertama." dst. (aturan ini khusus label/opsi Romawi, bukan daftar langkah biasa).
 - Heading "## Sub-bagian" → "Sub-bagian: [judul]."
 - Heading "### ..." → "Bagian: [judul]."
 - Penomoran bagian "1.", "2.", "3." → "Bagian satu.", "Bagian dua.", "Bagian tiga." — HANYA berlaku untuk judul/heading bagian yang berdiri sendiri, BUKAN nomor soal.
@@ -1336,7 +1338,7 @@ Jika dokumen berisi soal bernomor dengan opsi jawaban:
 5. Tidak ada simbol, karakter khusus, LaTeX, atau markup apapun dalam output—semua harus tertulis dalam huruf dan kata.
 6. Bahasa Indonesia yang mengalir natural—tidak kaku, tidak robotik.
 7. Output selalu dalam Bahasa Indonesia. Untuk dokumen berbahasa Inggris: teks prosa asli dibaca apa adanya (tidak perlu diterjemahkan), namun simbol matematika dan label struktural (nama bagian, keterangan tabel) disampaikan dalam Bahasa Indonesia.
-8. Semua angka WAJIB ditulis sebagai digit: tulis "50", bukan "lima puluh"; tulis "120", bukan "seratus dua puluh". NVDA dan mesin Braille membaca digit langsung dan lebih efisien.
+8. Semua angka WAJIB ditulis sebagai digit: tulis "50", bukan "lima puluh"; tulis "120", bukan "seratus dua puluh". NVDA dan mesin Braille membaca digit langsung dan lebih efisien. KECUALI label struktural: heading bab ("BAB SATU") dan penomoran bagian ("Bagian satu.") tetap menggunakan kata.
 9. Singkatan umum dieja penuh: "yaitu" bukan "i.e.", "misalnya" bukan "e.g.", "dan lain-lain" bukan "dll." atau "etc.".
 10. Satuan fisika dibaca lengkap: "meter per detik kuadrat" bukan "m/s²".
 11. Angka desimal dibaca dengan "koma" dan digit tetap: 2.71 → "2 koma 7 1", 0.85 → "0 koma 8 5".
@@ -1344,7 +1346,7 @@ Jika dokumen berisi soal bernomor dengan opsi jawaban:
 
 ═══ TANDA [PERSAMAAN: ...] ═══
 
-Teks dari dokumen DOCX mungkin mengandung blok [PERSAMAAN: ...]. Blok ini berisi
+Teks mungkin mengandung blok [PERSAMAAN: ...]. Blok ini berisi
 persamaan matematika yang diekstrak dari format OMML Microsoft Word. Isi di dalamnya
 adalah karakter-karakter mentah dari persamaan tersebut. Kamu WAJIB membaca dan
 menerjemahkan SETIAP blok [PERSAMAAN: ...] menjadi narasi lengkap sesuai konvensi
